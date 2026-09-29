@@ -122,16 +122,22 @@ export function Einstellungen(props: { store: Store }) {
         <label className="eingabeZeile">
           <span>Modell</span>
           <select
-            value={store.einstellungen.modelle[0] ?? STANDARD_MODELLE[0]}
+            value={store.einstellungen.modelle[0] ?? 'openai/gpt-oss-120b'}
             onChange={(e) => aendern({ modelle: [e.target.value, ...store.einstellungen.modelle.slice(1)] })}
           >
-            {Object.entries(STANDARD_MODELLE).map(([kurz, lang]) => (
-              <option key={kurz} value={kurz}>
-                {lang}
+            {Object.entries(STANDARD_MODELLE).map(([kurz, id]) => (
+              <option key={id} value={id}>
+                {kurz}
               </option>
             ))}
           </select>
         </label>
+        <p className="klein">
+          Standard: GPT-OSS 120b – präzise bei Rechenaufgaben. GPT-OSS 20b ist
+          der schnelle Ausweich; Qwen 3.8 27b, falls ein Modell gerade nicht
+          liefert. Steht ein Modell nicht mehr zur Verfügung, sagt das der
+          Verbindungstest unten – dann hier einfach umschalten.
+        </p>
 
         <p className={`klein ${kiBereit(store.einstellungen) ? 'okText' : 'frist dringend'}`}>
           {kiBereit(store.einstellungen)

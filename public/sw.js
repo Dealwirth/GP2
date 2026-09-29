@@ -10,7 +10,7 @@
  * Datenschutzarchitektur in einer Datei.
  */
 
-const CACHE = 'egt-trainer-v2';
+const CACHE = 'egt-trainer-v3';
 const HUELLE = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (ereignis) => {
@@ -25,6 +25,17 @@ self.addEventListener('activate', (ereignis) => {
       .then((namen) => Promise.all(namen.filter((n) => n !== CACHE).map((n) => caches.delete(n))))
       .then(() => self.clients.claim()),
   );
+});
+
+// Ein neues Programm meldet sich: Sämtliche offenen Fenster werden gebeten,
+// einmal neu zu laden. So kommt ein Update beim nächsten Besuch an, ohne
+// dass ein Handgriff nötig wird.
+self.addEventListener('message', (ereignis) => {
+  if (ereignis.data === 'update-fertig') {
+    self.clients.matchAll().then((liste) => {
+      for (const klient of liste) klient.navigate(klient.url);
+    });
+  }
 });
 
 self.addEventListener('fetch', (ereignis) => {

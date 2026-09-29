@@ -1,6 +1,13 @@
 import type { TaskProposal } from '../domain/types.ts';
 import { VORSCHLAG_SCHEMA } from './schemas.ts';
 
+// In Node (Tests) gibt es kein import.meta.env – dort greift nur der
+// Umgebungsvariablen-Weg über Vitest-Setup oder Testeinstellungen.
+const BAU_ZEIT_SCHLUESSEL: string =
+  typeof import.meta !== 'undefined' && import.meta.env
+    ? ((import.meta.env.VITE_GROQ_KEY as string | undefined)?.trim() ?? '')
+    : '';
+
 /**
  * KI-Zugang.
  *
@@ -30,13 +37,12 @@ export const DIRECT_GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
  * und zu Recht. Drehen oder wechseln heißt: Secret im Repository aktualisieren,
  * nächster Bau übernimmt ihn.
  */
-export const EINGEBAUTER_SCHLUESSEL: string =
-  (import.meta.env.VITE_GROQ_KEY as string | undefined)?.trim() ?? '';
+export const EINGEBAUTER_SCHLUESSEL: string = BAU_ZEIT_SCHLUESSEL;
 
 export const STANDARD_MODELLE: Record<string, string> = {
-  Groq: 'openai/gpt-oss-120b',
-  'Groq (schnell)': 'qwen/qwen3-32b',
-  'Groq (groß)': 'llama-3.3-70b',
+  'Groq: GPT-OSS 120b (Standard)': 'openai/gpt-oss-120b',
+  'Groq: GPT-OSS 20b (schnell)': 'openai/gpt-oss-20b',
+  'Groq: Qwen 3.8 27b (Ausweich)': 'qwen/qwen3.8-27b',
 };
 
 export const STANDARD_MODELL: string = 'openai/gpt-oss-120b';
@@ -140,6 +146,24 @@ export async function frage(
     throw new KiNichtErreichbar(
       fehler instanceof Error ? fehler.message : 'Netzwerkfehler',
     );
+  }
+
+  // Ausweichmöglichkeit: Manche Modelle des Anbieters akzeptieren den
+  // Strict-Schema-Zwang nicht und antworten mit 400. Statt endgültig
+  // aufzugeben, wiederholt dieser Aufruf dieselbe Anfrage im einfachen
+  // JSON-Modus – das Ergebnis landet dann in derselben Prüfpipeline.
+  if (antwort.status === 400 && anfrage.schema) {
+    const detail = await antwort.text();
+    if (/schema|response_format|json_schema|strict/i.test(detail)) {
+      delete body.response_format;
+      body.response_format = { type: 'json_object' };
+      antwort = await fetch(einstellungen.proxyUrl, {
+        method: 'POST',
+        headers: kopf,
+        body: JSON.stringify(body),
+        signal,
+      });
+    }
   }
 
   if (antwort.status === 429) {

@@ -41,7 +41,7 @@ export interface Einstellungen {
 
 export const STANDARDEINSTELLUNGEN: Einstellungen = {
   groqKey: EINGEBAUTER_SCHLUESSEL,
-  modelle: ['openai/gpt-oss-120b', 'qwen/qwen3-32b'],
+  modelle: ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b'],
   kiAktiv: true,
   zweitpruefung: true,
   animationen: true,
