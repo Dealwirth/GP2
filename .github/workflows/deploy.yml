@@ -23,7 +23,8 @@ jobs:
       - name: Faktenbericht
         run: npm run facts:check
 
-  veröffentlichen:
+  veroeffentlichen:
+    name: Veröffentlichen
     needs: pruefen
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -36,6 +37,10 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: Veröffentlichen
+        # Ohne Secrets (siehe README) wird der Schritt übersprungen, statt
+        # den ganzen Lauf rot zu färben. Auf Schritt-Ebene ist das
+        # secrets-Kontext erlaubt, auf Job-Ebene nicht.
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
