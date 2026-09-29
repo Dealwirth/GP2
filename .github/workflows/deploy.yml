@@ -50,3 +50,33 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist
+
+  # Eigenständige Veröffentlichung auf GitHub Pages: lädt nichts aus der
+  # Cloudflare-Einrichtung nach, sondern baut dieselbe App und stellt sie
+  # unter https://dealwirth.github.io/GP2/ bereit – Adresse für die
+  # Einbindung in Home Assistant.
+  seiten:
+    name: Seiten veröffentlichen
+    needs: pruefen
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

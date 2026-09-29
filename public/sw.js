@@ -10,7 +10,7 @@
  * Datenschutzarchitektur in einer Datei.
  */
 
-const CACHE = 'egt-trainer-v1';
+const CACHE = 'egt-trainer-v2';
 const HUELLE = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (ereignis) => {
@@ -42,17 +42,17 @@ self.addEventListener('fetch', (ereignis) => {
   if (url.origin !== self.location.origin) return;
 
   ereignis.respondWith(
-    caches.match(anfrage).then((treffer) => {
-      const netz = fetch(anfrage)
-        .then((antwort) => {
-          if (antwort.ok) {
-            const kopie = antwort.clone();
-            void caches.open(CACHE).then((cache) => cache.put(anfrage, kopie));
-          }
-          return antwort;
-        })
-        .catch(() => treffer ?? caches.match('./index.html'));
-      return treffer ?? netz;
-    }),
+    // Netz zuerst: Ein neuer Stand auf dem Server kommt immer an, auch wenn
+    // der Cache noch einen alten hält – die Tafel soll sich selbst erneuern.
+    // Erst wenn das Netz nicht antwortet, springt der Cache ein (Offline-Fall).
+    fetch(anfrage)
+      .then((antwort) => {
+        if (antwort.ok) {
+          const kopie = antwort.clone();
+          void caches.open(CACHE).then((cache) => cache.put(anfrage, kopie));
+        }
+        return antwort;
+      })
+      .catch(() => caches.match(anfrage).then((treffer) => treffer ?? caches.match('./index.html'))),
   );
 });
