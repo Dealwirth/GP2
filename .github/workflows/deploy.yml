@@ -36,11 +36,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Sind die Cloudflare-Secrets gesetzt?
+        id: sekrete
+        # Der secrets-Kontext ist nur in env-Werten erlaubt, nicht in
+        # if-Bedingungen – deshalb der Umweg über den Ausgabewert.
+        env:
+          VORHANDEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+        run: echo "vorhanden=$VORHANDEN" >> "$GITHUB_OUTPUT"
       - name: Veröffentlichen
-        # Ohne Secrets (siehe README) wird der Schritt übersprungen, statt
-        # den ganzen Lauf rot zu färben. Auf Schritt-Ebene ist das
-        # secrets-Kontext erlaubt, auf Job-Ebene nicht.
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+        if: steps.sekrete.outputs.vorhanden == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
