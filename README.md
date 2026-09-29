@@ -141,6 +141,14 @@ Private Repositories sind im Gratis-Tarif erlaubt. Es wird nichts aus dem
 Quelltext geladen, was nicht Allgemeinwissen ist: keine Schlüssel, kein
 Lernstand, keine Notizen.
 
+**1b. Website über GitHub Pages (Alternative)**
+
+Läuft automatisch: Jeder Push auf `main` wird vom Workflow geprüft, gebaut
+und auf <https://dealwirth.github.io/GP2/> veröffentlicht. Einrichtung war
+einmalig (Settings → Pages → Source: GitHub Actions). Diese Adresse eignet
+sich für die **Webpage-Karte in Home Assistant** – die Tafel lädt dann bei
+jedem Besuch den aktuellen Stand von GitHub, ohne dass etwas kopiert wird.
+
 **2. Worker: KI-Proxy und Sync-Speicher (einmalig)**
 
 ```bash
