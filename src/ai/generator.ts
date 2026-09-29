@@ -172,6 +172,7 @@ export async function erzeugeAufgaben(
     `Erstelle ${anzahl} verschiedene Aufgaben zum Thema "${atom.titel}".`,
     lager ? `Gehe dabei von dieser Besprechung aus: ${lager.typischeFragen[0] ?? atom.lernziel}` : '',
     'Variiere den Blickwinkel zwischen den Aufgaben (Anwendung, Fehlererkennung, Wert ableiten).',
+    'Antworte als JSON-Objekt mit dem Feld "aufgaben", das die Aufgaben als Liste enthält.',
   ]
     .filter(Boolean)
     .join(' ');

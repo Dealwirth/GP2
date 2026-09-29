@@ -151,12 +151,23 @@ export async function frage(
   // Ausweichmöglichkeit: Manche Modelle des Anbieters akzeptieren den
   // Strict-Schema-Zwang nicht und antworten mit 400. Statt endgültig
   // aufzugeben, wiederholt dieser Aufruf dieselbe Anfrage im einfachen
-  // JSON-Modus – das Ergebnis landet dann in derselben Prüfpipeline.
+  // JSON-Modus. Der Anbieter verlangt dabei das Wort "json" in der
+  // Nachricht – der Nutzerprompt bekommt es deshalb ausdrücklich ergänzt.
+  // Das Ergebnis landet in derselben Prüfpipeline.
   if (antwort.status === 400 && anfrage.schema) {
     const detail = await antwort.text();
-    if (/schema|response_format|json_schema|strict/i.test(detail)) {
-      delete body.response_format;
+    if (/schema|response_format|json_schema|strict|json/i.test(detail)) {
       body.response_format = { type: 'json_object' };
+      body.messages = [
+        { role: 'system', content: anfrage.system },
+        {
+          role: 'user',
+          content:
+            anfrage.nutzer +
+            '\n\nAntworte ausschließlich als JSON-Objekt gemäß dieser Felder: ' +
+            JSON.stringify(anfrage.schema).slice(0, 4000),
+        },
+      ];
       antwort = await fetch(einstellungen.proxyUrl, {
         method: 'POST',
         headers: kopf,
@@ -167,13 +178,32 @@ export async function frage(
   }
 
   if (antwort.status === 429) {
-    // Das Kontingent ist der häufigste Grund, warum es nicht läuft. Die Meldung
-    // muss sagen, was zu tun ist – nicht nur, dass etwas nicht geht.
-    const rest = antwort.headers.get('retry-after');
-    const wartehinweis = rest ? ` In ${rest} Sekunden erneut versuchen.` : '';
-    throw new KiNichtErreichbar(
-      `Rate-Limit erreicht – das kostenlose Kontingent ist für den Moment aufgebraucht.${wartehinweis}`,
-    );
+    // Das Kontingent ist tokenweise begrenzt und lädt sich in Sekunden wieder
+    // auf. Ein einziger automatischer Versuch mit kurzer Wartezeit nimmt der
+    // Sitzung den Stachel, dass eine von fünf Aufgaben an der Limite scheitert.
+    const wartesekunden = Number(antwort.headers.get('retry-after') ?? '0');
+    const ausText = /try again in ([\d.]+)s/i.exec(await antwort.clone().text());
+    const warte = Math.min(15_000, Math.ceil(((wartesekunden || Number(ausText?.[1] ?? 0)) + 1) * 1000));
+    if (warte > 0 && warte <= 15_000) {
+      await new Promise((aufloesen) => setTimeout(aufloesen, warte));
+      antwort = await fetch(einstellungen.proxyUrl, {
+        method: 'POST',
+        headers: kopf,
+        body: JSON.stringify(body),
+        signal,
+      });
+      if (antwort.ok) {
+        // Unten weiter wie bei einem normalen Erfolg.
+      } else if (antwort.status === 429) {
+        throw new KiNichtErreichbar(
+          'Rate-Limit erreicht – auch der zweite Versuch kam zu früh. In einer Minute erneut versuchen.',
+        );
+      }
+    } else {
+      throw new KiNichtErreichbar(
+        'Rate-Limit erreicht – das kostenlose Kontingent ist für den Moment aufgebraucht.',
+      );
+    }
   }
   if (antwort.status === 401 || antwort.status === 403) {
     throw new KiNichtErreichbar(
@@ -216,9 +246,19 @@ export async function frageAufgabenVorschlag(
     throw new KiNichtErreichbar('Antwort war kein gültiges JSON.');
   }
 
-  // Das Modell kann ein einzelnes Objekt oder eine Liste liefern.
-  const liste = Array.isArray(daten) ? daten : [daten];
-  if (liste.length === 0) throw new KiNichtErreichbar('Leere Aufgabenliste.');
+  // Drei Formen, die das Modell liefert: das erwartete Objekt mit dem
+  // aufgaben-Feld, eine bloße Liste, oder ein einzelnes Aufgabenobjekt.
+  // Alle drei werden akzeptiert – geformt wird anschließend sowieso durch
+  // die Prüfpipeline, nicht hier.
+  const rohListe = Array.isArray(daten)
+    ? daten
+    : typeof daten === 'object' && daten !== null && 'aufgaben' in daten
+      ? (daten as { aufgaben: unknown[] }).aufgaben
+      : [daten];
+  const liste = rohListe as unknown[];
+  if (!Array.isArray(liste) || liste.length === 0) {
+    throw new KiNichtErreichbar('Leere Aufgabenliste.');
+  }
 
   return liste.map((eintrag, index) => {
     const o = eintrag as Record<string, unknown>;

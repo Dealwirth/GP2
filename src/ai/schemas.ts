@@ -7,139 +7,152 @@
  * Rechen-Engine aus der Faktenbasis.
  *
  * FORM, die Groq im Strict Mode verlangt: Auf jeder Objektebene müssen alle
- * Eigenschaften in `required` stehen. optionale Angaben werden als
- * Typ-Vereinigung mit `null` ausgedrückt – `type: ['string', 'null']` statt
- * eines fehlenden `required`. Vereine ohne `null` (etwa `['number', 'string']`)
- * lehnt Groq mit 400 ab; genau das war der Fehler der ersten Fassung.
+ * Eigenschaften in `required` stehen; optionale Angaben werden als
+ * Typ-Vereinigung mit `null` ausgedrückt. Die Wurzel ist ein Objekt mit
+ * einem `aufgaben`-Feld – das Modell neigt sonst dazu, eine bloße Liste
+ * zurückzugeben, die der Strict-Modus mit 400 abweist.
  */
 export const VORSCHLAG_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: [
-    'format',
-    'stufe',
-    'examArea',
-    'topicIds',
-    'prompt',
-    'options',
-    'factRefs',
-    'learningGoal',
-    'hinweis',
-    'berechnung',
-  ],
+  required: ['aufgaben'],
   properties: {
-    format: {
-      type: 'string',
-      enum: ['mc', 'strukturiert', 'offen', 'fall'],
-      description: 'mc = Multiple Choice, strukturiert = Teilaussagen, offen = Freitext, fall = Situationsaufgabe',
-    },
-    stufe: {
-      type: 'integer',
-      enum: [1, 2, 3, 4],
-      description: '1 = Sekunde, 2 = Minute, 3 = kleiner Fall, 4 = Rechnen',
-    },
-    examArea: {
-      type: 'string',
-      enum: ['kundenauftrag', 'systementwurf', 'funktionsanalyse', 'wiso'],
-    },
-    topicIds: {
+    aufgaben: {
       type: 'array',
       minItems: 1,
-      items: { type: 'string' },
-      description: 'IDs der Atome aus dem vorgegebenen Curriculum-Ausschnitt',
-    },
-    prompt: {
-      type: 'string',
-      description:
-        'Aufgabentext. Zahlen dürfen nur verwendet werden, wenn sie in den ' +
-        'genannten factRefs stehen.',
-    },
-    options: {
-      type: 'array',
-      minItems: 3,
-      maxItems: 3,
-      description: 'Genau drei Antwortmöglichkeiten wie im Prüfungsbogen.',
+      maxItems: 5,
+      description: 'Die angeforderten Aufgaben.',
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['id', 'text', 'begruendungWennFalsch'],
+        required: [
+          'format',
+          'stufe',
+          'examArea',
+          'topicIds',
+          'prompt',
+          'options',
+          'factRefs',
+          'learningGoal',
+          'hinweis',
+          'berechnung',
+        ],
         properties: {
-          id: { type: 'string', enum: ['a', 'b', 'c'] },
-          text: { type: 'string' },
-          /** Begründung, warum diese Option falsch ist – bei der richtigen null. */
-          begruendungWennFalsch: { type: ['string', 'null'] },
+          format: {
+            type: 'string',
+            enum: ['mc', 'strukturiert', 'offen', 'fall'],
+            description: 'mc = Multiple Choice, strukturiert = Teilaussagen, offen = Freitext, fall = Situationsaufgabe',
+          },
+          stufe: {
+            type: 'integer',
+            enum: [1, 2, 3, 4],
+            description: '1 = Sekunde, 2 = Minute, 3 = kleiner Fall, 4 = Rechnen',
+          },
+          examArea: {
+            type: 'string',
+            enum: ['kundenauftrag', 'systementwurf', 'funktionsanalyse', 'wiso'],
+          },
+          topicIds: {
+            type: 'array',
+            minItems: 1,
+            items: { type: 'string' },
+            description: 'IDs der Atome aus dem vorgegebenen Curriculum-Ausschnitt',
+          },
+          prompt: {
+            type: 'string',
+            description:
+              'Aufgabentext. Zahlen dürfen nur verwendet werden, wenn sie in den ' +
+              'genannten factRefs stehen.',
+          },
+          options: {
+            type: 'array',
+            minItems: 3,
+            maxItems: 3,
+            description: 'Genau drei Antwortmöglichkeiten wie im Prüfungsbogen.',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['id', 'text', 'begruendungWennFalsch'],
+              properties: {
+                id: { type: 'string', enum: ['a', 'b', 'c'] },
+                text: { type: 'string' },
+                /** Begründung, warum diese Option falsch ist – bei der richtigen null. */
+                begruendungWennFalsch: { type: ['string', 'null'] },
+              },
+            },
+          },
+          factRefs: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['factId', 'value'],
+              properties: {
+                factId: { type: 'string' },
+                /** Verwendeter Wert, wenn die Aufgabe ihn nennt – sonst null. */
+                value: { type: ['number', 'string', 'null'] },
+              },
+            },
+            description: 'Nur tatsächlich existierende Fakten-IDs aus der Faktenbasis.',
+          },
+          learningGoal: {
+            type: 'string',
+            description: 'Was der Prüfling nach der Aufgabe können muss.',
+          },
+          hinweis: {
+            type: ['string', 'null'],
+            description: 'Optionaler Einstieg in die Lösung, ein Satz – sonst null.',
+          },
+          berechnung: {
+            type: 'object',
+            additionalProperties: false,
+            required: [
+              'art',
+              'u0FactId',
+              'idnFactId',
+              'factId',
+              'querschnittMm2',
+              'weg',
+              'leistungW',
+              'cosPhi',
+              'laengeM',
+              'stromA',
+              'inA',
+              'kennlinie',
+            ],
+            description:
+              'WIE die richtige Antwort berechnet wird. Du gibst nie die Antwort an, ' +
+              'sondern das Rechenrezept. Die Engine führt es aus und ermittelt die ' +
+              'richtige Option. Ohne Rezept wird die Aufgabe verworfen. Felder, die ' +
+              'zum gewählten art nicht gehören, sind null.',
+            properties: {
+              art: {
+                type: 'string',
+                enum: [
+                  'abschaltbedingung',
+                  'strombelastbarkeit',
+                  'strom-einphasig',
+                  'strom-drehstrom',
+                  'spannungsfall',
+                  'schleifenwiderstand',
+                  'faktenwert',
+                ],
+              },
+              u0FactId: { type: ['string', 'null'] },
+              idnFactId: { type: ['string', 'null'] },
+              factId: { type: ['string', 'null'] },
+              querschnittMm2: { type: ['number', 'null'] },
+              weg: { enum: ['referenz-iz', 'schultabelle', null] },
+              leistungW: { type: ['number', 'null'] },
+              cosPhi: { type: ['number', 'null'] },
+              laengeM: { type: ['number', 'null'] },
+              stromA: { type: ['number', 'null'] },
+              inA: { type: ['number', 'null'] },
+              kennlinie: { enum: ['B', 'C', 'D', null] },
+            },
+          },
         },
-      },
-    },
-    factRefs: {
-      type: 'array',
-      minItems: 1,
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['factId', 'value'],
-        properties: {
-          factId: { type: 'string' },
-          /** Verwendeter Wert, wenn die Aufgabe ihn nennt – sonst null. */
-          value: { type: ['number', 'string', 'null'] },
-        },
-      },
-      description: 'Nur tatsächlich existierende Fakten-IDs aus der Faktenbasis.',
-    },
-    learningGoal: {
-      type: 'string',
-      description: 'Was der Prüfling nach der Aufgabe können muss.',
-    },
-    hinweis: {
-      type: ['string', 'null'],
-      description: 'Optionaler Einstieg in die Lösung, ein Satz – sonst null.',
-    },
-    berechnung: {
-      type: 'object',
-      additionalProperties: false,
-      required: [
-        'art',
-        'u0FactId',
-        'idnFactId',
-        'factId',
-        'querschnittMm2',
-        'weg',
-        'leistungW',
-        'cosPhi',
-        'laengeM',
-        'stromA',
-        'inA',
-        'kennlinie',
-      ],
-      description:
-        'WIE die richtige Antwort berechnet wird. Du gibst nie die Antwort an, ' +
-        'sondern das Rechenrezept. Die Engine führt es aus und ermittelt die ' +
-        'richtige Option. Ohne Rezept wird die Aufgabe verworfen. Felder, die ' +
-        'zum gewählten art nicht gehören, sind null.',
-      properties: {
-        art: {
-          type: 'string',
-          enum: [
-            'abschaltbedingung',
-            'strombelastbarkeit',
-            'strom-einphasig',
-            'strom-drehstrom',
-            'spannungsfall',
-            'schleifenwiderstand',
-            'faktenwert',
-          ],
-        },
-        u0FactId: { type: ['string', 'null'] },
-        idnFactId: { type: ['string', 'null'] },
-        factId: { type: ['string', 'null'] },
-        querschnittMm2: { type: ['number', 'null'] },
-        weg: { enum: ['referenz-iz', 'schultabelle', null] },
-        leistungW: { type: ['number', 'null'] },
-        cosPhi: { type: ['number', 'null'] },
-        laengeM: { type: ['number', 'null'] },
-        stromA: { type: ['number', 'null'] },
-        inA: { type: ['number', 'null'] },
-        kennlinie: { enum: ['B', 'C', 'D', null] },
       },
     },
   },

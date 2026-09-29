@@ -126,6 +126,13 @@ describe('Aufgabengenerierung mit KI', () => {
     expect(task.proposal.origin).toBe('ki');
   });
 
+  it('liest auch das Wurzelformat mit einem aufgaben-Feld', async () => {
+    // Die Form, die Groq im Strict-Modus liefert: Wurzelobjekt mit Liste.
+    mitAntwort({ aufgaben: [rohVorschlag()] });
+    const ergebnis = await erzeugeAufgaben(EINSTELLUNGEN, atom, 1);
+    expect(ergebnis.aufgaben).toHaveLength(1);
+  });
+
   it('verwirft einen Vorschlag, dessen Optionen nicht zum Ergebnis passen', async () => {
     mitAntwort([
       rohVorschlag({

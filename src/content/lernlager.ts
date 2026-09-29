@@ -116,6 +116,20 @@ const KAPITEL_TAG_HINWEISE: Record<string, string[]> = {
   'fsa-schutzbewertung': ['abschaltbedingung', 'rcd', 'ausloesestrom'],
 };
 
+/**
+ * Grundfakten für Themen ohne eigene Zahlen: Bemessungsspannungen und
+ * Kleinspannungsgrenzen. Sie sind fachlich so allgemein, dass sie in fast
+ * jede Begriffsfrage als Zahlenbezug hineinpassen – und das Modell braucht
+ * eine konkrete Auswahlliste, sonst erfindet es IDs (F001, F002 …).
+ */
+const GRUNDFAKTEN = [
+  'u0-230',
+  'u0-400',
+  'u0-24',
+  'u0-50',
+  'idn-personenschutz',
+];
+
 /** Fakten-IDs, die die KI für ein Thema verwenden darf. */
 function faktenFuerAtom(atom: Atom): string[] {
   const gepflegt = GEPFLEGTE_BESPRECHUNGEN[atom.id];
@@ -132,7 +146,10 @@ function faktenFuerAtom(atom: Atom): string[] {
   for (const f of FAKTEN) {
     if (f.tags.some((t) => tags.has(t))) ids.push(f.id);
   }
-  return ids;
+  // Nie leer zurückgeben: Ohne konkrete Auswahlliste erfindet das Modell
+  // Fakten-IDs, und jede so gebaute Aufgabe würde an der Faktenbindung
+  // scheitern.
+  return ids.length > 0 ? ids : [...GRUNDFAKTEN];
 }
 
 /** Besprechung für ein Atom: gepflegt oder automatisch aus Lernziel gebaut. */

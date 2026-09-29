@@ -64,6 +64,17 @@ export function systemPromptFuerAufgaben(atom: Atom, faktenIds: string[], lager?
 
   teile.push('', 'ZULÄSSIGE FAKTEN (nur diese Werte darfst du verwenden):');
   teile.push(fakten || '- Keine Zahlen verwenden. Nur Begriffswissen abfragen.');
+  teile.push(
+    '',
+    'REZEPT (Feld berechnung):',
+    'Wähle je Aufgabe einen der Werte für art: abschaltbedingung (braucht ' +
+      'u0FactId + idnFactId), strombelastbarkeit (querschnittMm2 + weg), ' +
+      'strom-einphasig / strom-drehstrom (u0FactId + leistungW + cosPhi), ' +
+      'spannungsfall (laengeM + stromA + querschnittMm2), ' +
+      'schleifenwiderstand (u0FactId + inA + kennlinie) oder faktenwert ' +
+      '(factId). Alle Felder, die zum art nicht gehören, sind null. Die ' +
+      'Fact-IDs müssen exakt aus der Liste oben stammen.',
+  );
   return teile.join('\n');
 }
 
