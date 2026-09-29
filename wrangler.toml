@@ -41,9 +41,13 @@
 # binding = "EGT_SYNC"
 # id = "hier-die-id-aus-schritt-1"
 
-name = "egt-trainer-proxy"
+name = "gp2"
 main = "worker/index.ts"
 compatibility_date = "2026-09-01"
+
+# Der Name "gp2" ist derselbe wie der im Dashboard angelegte Worker – ein
+# späteres `npx wrangler deploy` aktualisiert also genau diesen Worker,
+# statt einen zweiten daneben anzulegen.
 
 # 100 000 Anfragen pro Tag im Gratis-Tarif – für eine Person mehr als genug.
 workers_dev = true
