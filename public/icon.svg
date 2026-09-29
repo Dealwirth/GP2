@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="EGT-Prüfungstrainer">
+  <rect width="192" height="192" rx="36" fill="#16181d" />
+  <path d="M60 46 L48 96 L60 146" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M96 46 L120 96 L96 146" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M138 46 L126 146" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" />
+</svg>

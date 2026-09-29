@@ -1,0 +1,32 @@
+{
+  "name": "egg-pruefungstrainer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Lernplattform für die Gesellenprüfung Teil 2, Elektroniker/in für Energie- und Gebäudetechnik (Bayern)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "facts:check": "tsx scripts/facts-report.ts",
+    "aufgaben:check": "tsx scripts/coverage-report.ts"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241106.0",
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0",
+    "vitest": "^3.2.7"
+  }
+}

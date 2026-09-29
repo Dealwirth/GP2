@@ -1,0 +1,186 @@
+import { describe, expect, it } from 'vitest';
+import { gleicheOptionenAb, rechne, RezeptFehler } from '../src/tasks/resolve.ts';
+import { erzeugeAufgaben, type AiEinstellungen } from '../src/ai/generator.ts';
+import { holeAtom } from '../src/content/curriculum/index.ts';
+import type { Task } from '../src/domain/types.ts';
+
+/** Vorschlag, den die KI zurückgeben könnte – ohne korrekte Antwort. */
+function rohVorschlag(overrides: Record<string, unknown> = {}) {
+  return {
+    format: 'mc',
+    stufe: 2,
+    examArea: 'funktionsanalyse',
+    topicIds: ['ka-verteilung-01'],
+    prompt: 'Wie groß darf R_A höchstens sein, wenn U₀ = 50 V und I_Δn = 300 mA beträgt?',
+    options: [
+      { id: 'a', text: '166,7 Ω', begruendungWennFalsch: '' },
+      { id: 'b', text: '500,0 Ω', begruendungWennFalsch: 'Zu groß.' },
+      { id: 'c', text: '100,0 Ω', begruendungWennFalsch: 'Zu klein.' },
+    ],
+    factRefs: [{ factId: 'u0-50' }, { factId: 'idn-feuchteraum' }],
+    learningGoal: 'Abschaltbedingung anwenden.',
+    berechnung: { art: 'abschaltbedingung', u0FactId: 'u0-50', idnFactId: 'idn-feuchteraum' },
+    ...overrides,
+  };
+}
+
+/** Mockt die Netzanfrage an den Worker. */
+function mitAntwort(antwort: unknown, fehler = false) {
+  const aufrufe: string[] = [];
+  globalThis.fetch = (async (_url: unknown, init?: { body?: string }) => {
+    aufrufe.push(String(init?.body ?? ''));
+    if (fehler) return new Response('nope', { status: 500 });
+    return new Response(
+      JSON.stringify({ model: 'test', choices: [{ message: { content: JSON.stringify(antwort) } }] }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    );
+  }) as typeof fetch;
+  return aufrufe;
+}
+
+const EINSTELLUNGEN: AiEinstellungen = {
+  proxyUrl: 'https://test.invalid/v1/chat',
+  modell: 'openai/gpt-oss-120b',
+  aktiv: true,
+  // Ohne Zweitprüfung bleiben die Tests offline und deterministisch.
+  zweitpruefung: false,
+};
+
+describe('Rezeptauflösung', () => {
+  it('rechnet die Abschaltbedingung', () => {
+    const r = rechne({ art: 'abschaltbedingung', u0FactId: 'u0-50', idnFactId: 'idn-feuchteraum' });
+    expect(r.wert).toBe(166.7);
+  });
+
+  it('rechnet einen Faktwert aus', () => {
+    const r = rechne({ art: 'faktenwert', factId: 'idn-personenschutz' });
+    expect(r.wert).toBe(0.03);
+  });
+
+  it('lehnt ein Rezept ohne gültige Fakten ab', () => {
+    expect(() => rechne({ art: 'abschaltbedingung', u0FactId: 'gibt-es-nicht', idnFactId: 'u0-50' })).toThrow(
+      RezeptFehler,
+    );
+  });
+
+  it('lehnt ein Rezept ohne Zahlenwert ab', () => {
+    // Die Formel-Fakten haben nur einen Formeltext, keinen Zahlenwert.
+    expect(() => rechne({ art: 'faktenwert', factId: 'formel-strom-einphasig' })).toThrow(
+      /keinen Zahlenwert/,
+    );
+  });
+});
+
+describe('Optionsabgleich', () => {
+  it('erkennt die passende Option', () => {
+    const a = gleicheOptionenAb(
+      [
+        { id: 'a', text: '166,7 Ω' },
+        { id: 'b', text: '100,0 Ω' },
+      ],
+      { wert: 166.7 },
+    );
+    expect(a.korrektOptionId).toBe('a');
+  });
+
+  it('erkennt eine doppelte Lösung als mehrdeutig', () => {
+    const a = gleicheOptionenAb(
+      [
+        { id: 'a', text: '166,7 Ω' },
+        { id: 'b', text: '166,8 Ω' },
+      ],
+      { wert: 166.7 },
+    );
+    expect(a.korrektOptionId).toBeNull();
+    expect(a.passende).toHaveLength(2);
+  });
+
+  it('erkennt, wenn keine Option passt', () => {
+    const a = gleicheOptionenAb(
+      [
+        { id: 'a', text: '1,0 Ω' },
+        { id: 'b', text: '2,0 Ω' },
+      ],
+      { wert: 166.7 },
+    );
+    expect(a.korrektOptionId).toBeNull();
+    expect(a.passende).toHaveLength(0);
+  });
+});
+
+describe('Aufgabengenerierung mit KI', () => {
+  const atom = holeAtom('ka-verteilung-01')!;
+
+  it('erzeugt eine Aufgabe, deren Antwort die Engine bestimmt', async () => {
+    mitAntwort([rohVorschlag()]);
+    const ergebnis = await erzeugeAufgaben(EINSTELLUNGEN, atom, 1);
+    expect(ergebnis.kiAktiv).toBe(true);
+    expect(ergebnis.aufgaben).toHaveLength(1);
+    const task = ergebnis.aufgaben[0] as Task;
+    expect(task.correctOptionId).toBe('a');
+    expect(task.solutionSteps.length).toBeGreaterThan(0);
+    expect(task.validation.checks.every((c) => c.passed)).toBe(true);
+    expect(task.proposal.origin).toBe('ki');
+  });
+
+  it('verwirft einen Vorschlag, dessen Optionen nicht zum Ergebnis passen', async () => {
+    mitAntwort([
+      rohVorschlag({
+        options: [
+          { id: 'a', text: '7,0 Ω' },
+          { id: 'b', text: '9,0 Ω' },
+          { id: 'c', text: '11,0 Ω' },
+        ],
+      }),
+    ]);
+    const ergebnis = await erzeugeAufgaben(EINSTELLUNGEN, atom, 1);
+    expect(ergebnis.aufgaben).toHaveLength(0);
+    expect(ergebnis.verworfen[0]?.grund).toMatch(/Keine Option passt/);
+  });
+
+  it('verwirft einen Vorschlag mit mehrdeutigen Optionen', async () => {
+    mitAntwort([
+      rohVorschlag({
+        options: [
+          { id: 'a', text: '166,7 Ω' },
+          { id: 'b', text: '166,7 Ω' },
+          { id: 'c', text: '100,0 Ω' },
+        ],
+      }),
+    ]);
+    const ergebnis = await erzeugeAufgaben(EINSTELLUNGEN, atom, 1);
+    expect(ergebnis.aufgaben).toHaveLength(0);
+    expect(ergebnis.verworfen[0]?.grund).toMatch(/mehrdeutig/);
+  });
+
+  it('verwirft einen Vorschlag, der eine freie Zahl erfindet', async () => {
+    mitAntwort([
+      rohVorschlag({
+        prompt: 'Wie groß darf R_A sein, wenn der Grenzwert 137,4 Ω ist?',
+      }),
+    ]);
+    const ergebnis = await erzeugeAufgaben(EINSTELLUNGEN, atom, 1);
+    expect(ergebnis.aufgaben).toHaveLength(0);
+    expect(ergebnis.verworfen[0]?.grund).toMatch(/Faktenbindung|gebunden/i);
+  });
+
+  it('verwirft ein Rezept, das nicht ausführbar ist', async () => {
+    mitAntwort([rohVorschlag({ berechnung: { art: 'abschaltbedingung', u0FactId: 'erfunden' } })]);
+    const ergebnis = await erzeugeAufgaben(EINSTELLUNGEN, atom, 1);
+    expect(ergebnis.aufgaben).toHaveLength(0);
+    expect(ergebnis.verworfen).toHaveLength(1);
+  });
+
+  it('liefert ohne KI keine Aufgaben und meldet das', async () => {
+    const ergebnis = await erzeugeAufgaben({ ...EINSTELLUNGEN, aktiv: false }, atom, 3);
+    expect(ergebnis.kiAktiv).toBe(false);
+    expect(ergebnis.aufgaben).toHaveLength(0);
+  });
+
+  it('überlebt einen Ausfall des Workers', async () => {
+    mitAntwort(null, true);
+    const ergebnis = await erzeugeAufgaben(EINSTELLUNGEN, atom, 3);
+    expect(ergebnis.kiAktiv).toBe(false);
+    expect(ergebnis.aufgaben).toHaveLength(0);
+  });
+});

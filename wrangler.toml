@@ -1,0 +1,49 @@
+# Cloudflare Pages (Website) und Worker (KI-Proxy + Lernstand)
+#
+# Beides kostenlos, beides ohne Kreditkarte.
+#
+# ---------------------------------------------------------------------------
+# Website veröffentlichen
+# ---------------------------------------------------------------------------
+#   1. Neues Projekt „egt-trainer" anlegen (Cloudflare Pages)
+#   2. GitHub-Repository „GP2" verbinden
+#   3. Build-Befehl:        npm run build
+#   4. Ausgabeverzeichnis:  dist
+#
+# Danach liegt die Anwendung unter https://egt-trainer.pages.dev.
+#
+# ---------------------------------------------------------------------------
+# Worker veröffentlichen (einmalig)
+# ---------------------------------------------------------------------------
+#   npx wrangler deploy
+#   npx wrangler secret put GROQ_API_KEY
+#   Optional: ERLAUBTE_HERKUNFT auf die Pages-Adresse setzen
+#
+# ---------------------------------------------------------------------------
+# Lernstand aufbewahren (KV)
+# ---------------------------------------------------------------------------
+# Ohne KV funktioniert alles außer der Synchronisation; der Worker antwortet
+# dann mit 501 und die Einstellungsseite sagt, was fehlt.
+#
+# Der Namespace wird in der Cloudflare-Konsole angelegt
+#   Workers & Pages → KV → Create a namespace → Name: egt-sync
+# und dann als Binding an den Worker gehängt
+#   Worker → Settings → Bindings → Add → KV Namespace
+#   Variablenname: EGT_SYNC     Namespace: egt-sync
+#
+# Derselbe Schritt über die Kommandozeile:
+#   1. npx wrangler kv namespace create egt-sync
+#      → gibt eine id aus, z. B. 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d
+#   2. Die id unten eintragen und die beiden Zeilen einkommentieren.
+#   3. npx wrangler deploy
+#
+# [[kv_namespaces]]
+# binding = "EGT_SYNC"
+# id = "hier-die-id-aus-schritt-1"
+
+name = "egt-trainer-proxy"
+main = "worker/index.ts"
+compatibility_date = "2026-09-01"
+
+# 100 000 Anfragen pro Tag im Gratis-Tarif – für eine Person mehr als genug.
+workers_dev = true

@@ -1,0 +1,1561 @@
+:root {
+  --bg: #ffffff;
+  --fg: #16181d;
+  --leise: #6b7280;
+  --linie: #e4e6ea;
+  --akzent: #1f2937;
+  --ok: #166534;
+  --ok-bg: #f0fdf4;
+  --falsch: #b91c1c;
+  --falsch-bg: #fef2f2;
+  --warn: #92400e;
+  --warn-bg: #fffbeb;
+  --radius: 10px;
+  --max: 720px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101215;
+    --fg: #e8eaed;
+    --leise: #9aa1ab;
+    --linie: #262a30;
+    --akzent: #e8eaed;
+    --ok: #6ee7a0;
+    --ok-bg: #10261a;
+    --falsch: #fca5a5;
+    --falsch-bg: #2a1414;
+    --warn: #fcd34d;
+    --warn-bg: #2a2210;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 17px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Sehr schlicht: eine Spalte, viel Weißraum, keine dekorativen Elemente. */
+.huelle {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 1.25rem 1rem 4rem;
+  /* Seitenrand als Variable, damit durchgereichte Elemente ihn kennen. */
+  --gutter: 1rem;
+}
+
+.kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--linie);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.kopf h1 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.kopf .stand {
+  font-size: 0.8rem;
+  color: var(--leise);
+}
+
+h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 2rem 0 0.5rem;
+  letter-spacing: -0.015em;
+}
+
+h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--leise);
+  margin: 1.5rem 0 0.5rem;
+}
+
+p {
+  margin: 0 0 0.75rem;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius);
+  border: 1px solid var(--linie);
+  background: var(--bg);
+  color: var(--fg);
+  padding: 0.7rem 1rem;
+  min-height: 48px;
+  width: 100%;
+  text-align: left;
+  transition: background 0.1s ease;
+}
+
+button:hover:not(:disabled) {
+  background: var(--akzent);
+  color: var(--bg);
+  border-color: var(--akzent);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+button.haupt {
+  background: var(--akzent);
+  color: var(--bg);
+  border-color: var(--akzent);
+  font-weight: 600;
+  padding: 1rem;
+  font-size: 1.05rem;
+  min-height: 60px;
+  text-align: center;
+}
+
+button.richtig {
+  background: var(--ok-bg);
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+button.falsch {
+  background: var(--falsch-bg);
+  border-color: var(--falsch);
+  color: var(--falsch);
+}
+
+button.still {
+  border: none;
+  color: var(--leise);
+  padding: 0.5rem 0;
+  min-height: 40px;
+  text-align: center;
+}
+
+.raster {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.raster2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 640px) {
+  .raster3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  html {
+    font-size: 18px;
+  }
+  .huelle {
+    padding: 2rem 1.5rem 5rem;
+    --gutter: 1.5rem;
+  }
+}
+
+.karte {
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.karte .titel {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.karte .meta {
+  font-size: 0.82rem;
+  color: var(--leise);
+}
+
+.frage {
+  font-size: 1.1rem;
+  line-height: 1.45;
+  margin: 1.25rem 0 1rem;
+}
+
+.option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 0.5rem;
+  padding: 0.85rem 1rem;
+}
+
+.sicherheit {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.sicherheit .klein {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.sicherheit button {
+  text-align: center;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.25rem;
+  min-height: 44px;
+}
+
+.sicherheit button.gewahlt {
+  background: var(--akzent);
+  color: var(--bg);
+  border-color: var(--akzent);
+}
+
+.feld {
+  font-size: 0.85rem;
+  color: var(--leise);
+}
+
+.warnung {
+  background: var(--warn-bg);
+  border: 1px solid var(--ok);
+  color: var(--warn);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.75rem;
+}
+
+.schritte {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.schritte li {
+  border-left: 2px solid var(--linie);
+  padding: 0.5rem 0 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.schritte .formel {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  color: var(--leise);
+}
+
+.zusammenfassung {
+  display: flex;
+  gap: 1.5rem;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.zahl {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.klein {
+  font-size: 0.82rem;
+  color: var(--leise);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--linie);
+  margin: 1.5rem 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Navigation
+
+   Drei Geräteklassen, ein Modell:
+
+   Telefon   fest am unteren Rand – mit dem Daumen erreichbar, das ist der
+             einzige Ort, den man mit einer Hand sicher trifft.
+   Tablet    ebenso unten, aber breiteres Inhaltsfeld.
+   PC        senkrechte Leiste links. Eine waagerechte Leiste über die volle
+             Bildschirmbreite wäre auf 27 Zoll eine Zumutung: der Blick
+             wandert bei jedem Wechsel quer über den Monitor. Links liegt die
+             Navigation im natürlichen Lesefluss vor dem Inhalt.
+   --------------------------------------------------------------------------- */
+
+.navigation {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: var(--bg);
+  border-top: 1px solid var(--linie);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 20;
+}
+
+.navigation button {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  min-height: 56px;
+  text-align: center;
+  font-size: 0.8rem;
+  padding: 0;
+  background: transparent;
+  color: var(--leise);
+}
+
+.navigation button:hover {
+  background: transparent;
+}
+
+.navigation button.aktiv {
+  color: var(--fg);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--fg);
+}
+
+.fuss {
+  padding: 1.5rem 0 0.5rem;
+  text-align: center;
+}
+
+.huelle {
+  padding-bottom: 7rem;
+}
+
+.kopf .stand {
+  white-space: nowrap;
+}
+
+.kopfleiste {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--linie);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Startseite ---------------------------------------------------------------- */
+
+.start {
+  margin: 1rem 0 1.5rem;
+}
+
+.budget {
+  margin: 0.75rem 0;
+}
+
+button.budgetKnopf {
+  text-align: center;
+  padding: 1rem 0.5rem;
+}
+
+.budgetZahl {
+  display: block;
+  font-size: 1.7rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.coach {
+  border-left: 3px solid var(--akzent);
+  padding: 0.25rem 0 0.25rem 0.85rem;
+  margin: 1.5rem 0;
+}
+
+.coachListe {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 0.9rem;
+}
+
+.reifeListe {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/*
+ * Zwei Zeilen je Bereich: erst Name und Prozentwert, darunter der Balken.
+ *
+ * Vorher standen Name, Balken und Wert nebeneinander. Auf einem Telefon wurde
+ * der Name dann abgeschnitten ("Teil 1 – Elektrotechnische Anla…"), und bei
+ * langen Bezeichnungen schoben sich die Spalten ineinander. Untereinander
+ * kann nichts mehr kollidieren, und der Name bleibt vollständig lesbar.
+ */
+.reifeZeile {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 0.15rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.reifeZeile .reifeName {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.reifeZeile .balken {
+  grid-column: 1 / -1;
+  /*
+   * Begrenzte Breite, linksbündig.
+   *
+   * Auf einem breiten Bildschirm lief der Balken sonst über die volle
+   * Inhaltsbreite, und ein leerer Balken sah dann genau aus wie eine
+   * Trennlinie – man hielt ihn nicht mehr für eine Anzeige. So bleibt die
+   * Form eines Balkens erkennbar, auch wenn der Wert null ist.
+   */
+  max-width: 22rem;
+  justify-self: start;
+  width: 100%;
+}
+
+.balken {
+  height: 6px;
+  background: var(--linie);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.balkenFuell {
+  height: 100%;
+  background: var(--akzent);
+  transition: width 0.3s ease;
+}
+
+.schmalBalken {
+  height: 4px;
+  margin-top: 0.35rem;
+}
+
+.zahlKlein {
+  font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+  text-align: right;
+}
+
+.frist {
+  font-size: 0.82rem;
+  color: var(--leise);
+  margin: 0.15rem 0;
+}
+
+.frist.dringend {
+  color: var(--falsch);
+  font-weight: 600;
+}
+
+.frist.bald {
+  color: var(--warn);
+}
+
+.zeilen-liste .zeile,
+.zeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--linie);
+  flex-wrap: wrap;
+}
+
+.zeile:last-child {
+  border-bottom: none;
+}
+
+.zeile.aktiv {
+  font-weight: 600;
+}
+
+.zeile > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Reiter -------------------------------------------------------------------- */
+
+/*
+ * Reiterreihe.
+ *
+ * Umbrechen statt waagerecht scrollen. Zuvor war der letzte Reiter ("Wirt-
+ * schafts- und Sozialkunde") an der Bildschirmkante angeschnitten, und man
+ * musste schieben, um ihn überhaupt lesen zu können. Bei fünf kurzen Reitern
+ * ist ein Umbruch nicht nur einfacher, sondern zeigt auch alles auf einen
+ * Blick – und ein halb sichtbarer Text ist genau das, was hier nicht stehen
+ * soll.
+ */
+.reiterreihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+button.reiter {
+  width: auto;
+  white-space: nowrap;
+  min-height: 40px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  border-radius: 999px;
+}
+
+button.reiter.aktiv {
+  background: var(--akzent);
+  color: var(--bg);
+  border-color: var(--akzent);
+}
+
+input.suche {
+  width: 100%;
+  font: inherit;
+  padding: 0.7rem 0.9rem;
+  min-height: 48px;
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  margin-bottom: 1rem;
+}
+
+/* Lernpfad ------------------------------------------------------------------ */
+
+.kapitel {
+  border-bottom: 1px solid var(--linie);
+  padding: 0.25rem 0;
+}
+
+button.kapitelKopf {
+  border: none;
+  background: transparent;
+  padding: 0.85rem 0;
+  width: 100%;
+  text-align: left;
+  min-height: 0;
+}
+
+button.kapitelKopf:hover {
+  background: transparent;
+  color: var(--fg);
+}
+
+.kapitelTitel {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.atomListe {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.atomListe li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--linie);
+  font-size: 0.9rem;
+}
+
+.atomPunkt {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--linie);
+}
+
+.atomPunkt[data-state='gefestigt'],
+.atomPunkt[data-state='pruefungsreif'] {
+  background: var(--ok);
+}
+
+.atomPunkt[data-state='unsicher'] {
+  background: var(--warn);
+}
+
+.atomPunkt[data-state='ueberfaellig'] {
+  background: var(--falsch);
+}
+
+.atomTitel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.marker {
+  font-size: 0.8rem;
+  color: var(--leise);
+}
+
+/* Labor --------------------------------------------------------------------- */
+
+.schaltung {
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.schaltKreis {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 44px;
+}
+
+.schaltPunkt {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--akzent);
+  flex: 0 0 auto;
+}
+
+.schaltLeitung {
+  height: 3px;
+  background: var(--akzent);
+  flex: 1;
+  transition: background 0.25s ease;
+}
+
+.schaltung.ausgeloest .schaltLeitung,
+.schaltung.spannungslos .schaltLeitung {
+  background: var(--falsch);
+}
+
+.schaltung.peBelastet .schaltLeitung {
+  background: var(--warn);
+  animation: pulsieren 1.4s ease-in-out infinite;
+}
+
+.schaltung.ausgeloest .schaltPunkt.last,
+.schaltung.spannungslos .schaltPunkt.last {
+  border-color: var(--falsch);
+}
+
+.schaltung.ausgeloest .schaltPunkt.schalter {
+  border-color: var(--falsch);
+  transform: rotate(12deg);
+}
+
+.schaltWerte {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.schaltWerte > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.schaltWerte .wert {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.schaltZustand {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--leise);
+}
+
+@keyframes pulsieren {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .schaltung.peBelastet .schaltLeitung {
+    animation: none;
+  }
+  .balkenFuell,
+  .schaltLeitung {
+    transition: none;
+  }
+}
+
+.aktionen {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.aktionen button {
+  text-align: center;
+  font-size: 0.88rem;
+}
+
+.ereignisse {
+  margin-top: 1rem;
+}
+
+.ereignis {
+  font-size: 0.88rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--linie);
+  background: var(--bg);
+}
+
+.ereignis.schutz {
+  border-left-color: var(--ok);
+  background: var(--ok-bg);
+}
+
+.ereignis.warnung {
+  border-left-color: var(--warn);
+  background: var(--warn-bg);
+}
+
+.ereignis.fehler {
+  border-left-color: var(--falsch);
+  background: var(--falsch-bg);
+}
+
+.karte.fehler {
+  border-color: var(--falsch);
+}
+
+.karte.pause {
+  opacity: 0.7;
+}
+
+.karte.gespraech {
+  border-left: 3px solid var(--akzent);
+}
+
+.knopffrei {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.kleinKnopf {
+  width: auto;
+  min-height: 36px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.kleinKnopf.aktiv {
+  background: var(--akzent);
+  color: var(--bg);
+  border-color: var(--akzent);
+}
+
+.feldLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  font-size: 0.9rem;
+}
+
+.eingabeZeile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+  color: var(--leise);
+}
+
+.eingabeZeile input,
+.eingabeZeile select,
+.eingabeZeile textarea {
+  font: inherit;
+  font-size: 1rem;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
+  min-height: 48px;
+  width: 100%;
+}
+
+.eingabeZeile textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.zahlEingabe {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  width: 7rem;
+  padding: 0.5rem;
+  min-height: 44px;
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.dateiKnopf {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  padding: 0.7rem 1rem;
+  min-height: 48px;
+  line-height: 1.55rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.dateiKnopf input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+button.gefahr {
+  border-color: var(--falsch);
+  color: var(--falsch);
+}
+
+/* Fortschritt, Bericht ------------------------------------------------------ */
+
+.okText {
+  color: var(--ok);
+}
+
+.stark {
+  font-weight: 600;
+}
+
+.rot {
+  color: var(--falsch);
+}
+
+.gruen {
+  color: var(--ok);
+}
+
+.schwacheListe {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.schwacheListe li,
+.faktListe li,
+.punkteListe li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--linie);
+  font-size: 0.88rem;
+}
+
+.schwacheListe li:last-child,
+.faktListe li:last-child,
+.punkteListe li:last-child {
+  border-bottom: none;
+}
+
+.punkteListe {
+  padding-left: 1.1rem;
+  display: block;
+}
+
+.versionszeile {
+  font-size: 0.75rem;
+  color: var(--leise);
+}
+
+.tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin: 0.75rem 0;
+}
+
+.tabelle th,
+.tabelle td {
+  text-align: left;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--linie);
+}
+
+.tabelle th {
+  font-weight: 600;
+  color: var(--leise);
+  font-size: 0.8rem;
+}
+
+.berichtKarte {
+  background: var(--bg);
+}
+
+@media print {
+  .navigation,
+  .fuss,
+  button,
+  .raster {
+    display: none !important;
+  }
+
+  .huelle {
+    padding: 0;
+    max-width: none;
+  }
+
+  .berichtKarte {
+    border: none;
+  }
+}
+
+/* Der Fünf-Minuten-Knopf ist der Hauptweg – deshalb breiter und höher. */
+button.budgetHaupt {
+  text-align: center;
+  margin: 0.5rem 0;
+  padding: 1.25rem 0.75rem;
+}
+
+button.budgetHaupt .klein {
+  color: inherit;
+  opacity: 0.75;
+}
+
+/* Der Hauptknopf bleibt immer erreichbar – und niemals unter der Navigation. */
+button.haupt {
+  position: sticky;
+  bottom: calc(56px + env(safe-area-inset-bottom));
+  z-index: 10;
+  box-shadow: 0 -2px 8px rgb(0 0 0 / 8%);
+}
+
+@media (prefers-color-scheme: dark) {
+  button.haupt {
+    box-shadow: 0 -2px 8px rgb(0 0 0 / 45%);
+  }
+}
+
+/* Reiterreihen scrollen waagerecht, ohne dass die Bildlaufleiste auffaellt. */
+.reiterreihe {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.reiterreihe::-webkit-scrollbar {
+  display: none;
+}
+
+/* Springt ein Element per Bildlauf in den sichtbaren Bereich, darf es nicht
+   unter der festen Navigation landen. */
+button,
+input,
+select,
+textarea,
+.karte,
+.aktionen {
+  scroll-margin-bottom: 7rem;
+}
+
+.huelle {
+  padding-bottom: 9rem;
+}
+
+/* ===========================================================================
+   Kennzahlen, Prüfungsliste und Prüfungskarten
+   ---------------------------------------------------------------------------
+   Diese Bausteine ersetzen die früheren Fließtext-Absätze auf dem
+   Prüfungstrainer und im Lernstand. Leitgedanke: Eine Zahl mit Beschriftung
+   braucht keinen Satz, und eine Liste aus fünf Prüfpunkten braucht keine
+   Erklärung, wenn das Häkchen die Antwort schon zeigt.
+   =========================================================================== */
+
+/*
+ * Kennzahlenraster. `auto-fit` mit Mindestbreite sorgt dafür, dass vier
+ * Zahlen auf dem Telefon in zwei Reihen rutschen statt sich zu quetschen.
+ */
+.kennzahlen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.kennzahlen .zahl {
+  font-size: 1.5rem;
+  line-height: 1.15;
+}
+
+/* Prüfpunktliste – Häkchen, Bezeichnung, Wert. */
+.pruefliste {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pruefliste li {
+  display: grid;
+  grid-template-columns: 1.1rem 1fr auto;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--linie);
+  font-size: 0.88rem;
+}
+
+.pruefliste li:last-child {
+  border-bottom: none;
+}
+
+.pruefliste .marke {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/*
+ * Kleine Herkunftsmarke, z. B. "Orientierung" an einem Prüfungstermin.
+ * Sie muss auffallen, ohne zu schreien: Wer ein Datum liest, soll sehen,
+ * woher es kommt, bevor er es glaubt.
+ */
+.marke {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--leise);
+  white-space: nowrap;
+}
+
+.pruefliste .prText {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.pruefliste .prWert {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--leise);
+}
+
+/*
+ * Kopfzeile mit Titel links und einer Kennzahl rechts.
+ *
+ * Bewusst NICHT an `.prCard` gebunden: Diese Kopfzeile kommt auch in der
+ * Ergebnisansicht und auf dem Lernstand vor. War sie an die Karte gebunden,
+ * liefen Titel und Zahl dort ohne Abstand ineinander ("Danach wiederholen20
+ * Themen").
+ */
+.prKopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.prTitel {
+  font-weight: 600;
+  min-width: 0;
+}
+
+.prGewicht {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--leise);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.prMeta {
+  font-size: 0.8rem;
+  color: var(--leise);
+  margin-top: 0.15rem;
+}
+
+/* Aufgabenzeile mit Vorratsstand und Startknopf. */
+.prZeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.prVorrat {
+  font-size: 0.8rem;
+  color: var(--leise);
+  font-variant-numeric: tabular-nums;
+}
+
+button.prStart {
+  width: auto;
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0.4rem 1rem;
+}
+
+.warnText {
+  color: var(--warn);
+}
+
+/* Laufende Prüfung: Zähler links, Restzeit rechts, darunter der Fortschritt. */
+.prLaufend {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.prLaufend .zahlKlein {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.fortschrittsbalken {
+  margin-bottom: 1.5rem;
+}
+
+/* Die gewählte Antwort muss sichtbar sein – sonst weiß man beim Blättern
+   nicht mehr, was man angekreuzt hat. */
+button.option.gewaehlt,
+button.option.gewaehlt:disabled {
+  background: var(--akzent);
+  color: var(--bg);
+  border-color: var(--akzent);
+  opacity: 1;
+}
+
+/* Hinweiszeile unter einer Liste – deutlich abgesetzt, damit sie nicht mit
+   dem letzten Listeneintrag verschmilzt. */
+.hinweiszeile {
+  margin-top: 0.85rem;
+}
+
+/* Größte Lücken. */
+.schwacheListe .lueckText {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: break-word;
+}
+
+/* Phasenplan. */
+.phasenListe {
+  margin-top: 0.5rem;
+}
+
+.phasenZeile {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--linie);
+  font-size: 0.86rem;
+}
+
+.phasenZeile:last-child {
+  border-bottom: none;
+}
+
+.phasenZeile.aktiv {
+  font-weight: 600;
+}
+
+.phasenZeile .klein {
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+/* Countdown zum nächsten Termin. */
+.countdown {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid var(--linie);
+}
+
+.countdown .zahl {
+  font-size: 1.8rem;
+}
+
+/* ===========================================================================
+   Bildschirmbreiten
+   ---------------------------------------------------------------------------
+   Drei Stufen, jede mit einer eigenen Entscheidung:
+
+     bis 699 px   Telefon. Eine Spalte, Navigation unten.
+     700–1023 px  Tablet. Breiteres Inhaltsfeld, Karten dürfen zweispaltig
+                  werden, Navigation bleibt unten.
+     ab 1024 px   PC. Navigation wandert als Leiste nach links, der Inhalt
+                  bekommt eine deutlich breitere Fläche, und wo mehrere
+                  gleichartige Karten stehen, liegen sie nebeneinander.
+
+   Der Grund für die dritte Stufe: Eine 720-px-Spalte mitten auf einem
+   27-Zoll-Monitor wirkt wie ein Fehler. Genauso falsch wäre es aber, den Text
+   über die volle Breite laufen zu lassen – Augenzeilen über 90 Zeichen lesen
+   sich schlecht. Deshalb breiter, aber in Spalten aufgeteilt.
+   =========================================================================== */
+
+/* --- Tablet --------------------------------------------------------------- */
+
+@media (min-width: 700px) {
+  .huelle {
+    --max: 820px;
+  }
+
+  /* Karten mit gleichartigem Inhalt nebeneinander statt untereinander. */
+  .kartenraster {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: 0.75rem;
+    align-items: start;
+  }
+
+  .kartenraster > .karte {
+    margin-bottom: 0;
+  }
+}
+
+/* --- PC ------------------------------------------------------------------- */
+
+@media (min-width: 1024px) {
+  /*
+   * Der Platz für die Leiste gehört an den `body`, nicht an die Hülle.
+   *
+   * Vorher hatte die Hülle einen linken Außenabstand. Damit klebte der Inhalt
+   * direkt rechts an der Leiste, und rechts blieb der restliche Bildschirm
+   * leer. Mit dem Abstand am `body` zentriert `margin: 0 auto` den Inhalt im
+   * tatsächlich freien Raum – links und rechts gleich viel Rand.
+   */
+  body {
+    padding-left: 14rem;
+  }
+
+  .huelle {
+    --max: 1080px;
+    margin: 0 auto;
+    padding: 2.5rem 2.5rem 5rem;
+  }
+
+  .navigation {
+    top: 0;
+    right: auto;
+    bottom: 0;
+    width: 14rem;
+    flex-direction: column;
+    border-top: none;
+    border-right: 1px solid var(--linie);
+    padding: 1.5rem 0.75rem;
+    gap: 0.25rem;
+    /* Die Leiste scrollt nicht mit und braucht deshalb keinen unteren Rand. */
+  }
+
+  .navigation button {
+    flex: 0 0 auto;
+    min-height: 48px;
+    text-align: left;
+    padding: 0 1rem;
+    border-radius: var(--radius);
+    font-size: 0.92rem;
+  }
+
+  .navigation button:hover {
+    background: var(--linie);
+  }
+
+  /* Auf dem PC zeigt die Markierung eine Fläche, keine Unterkante. */
+  .navigation button.aktiv {
+    background: var(--linie);
+    box-shadow: none;
+  }
+
+  /* Der Kopf bekommt die Programmbezeichnung als eigene Zeile – links oben
+     ist der natürliche Ort dafür, wenn die Navigation seitlich steht. */
+  .kopf {
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  /* Drei Spalten für gleichartige Karten sind erst hier sinnvoll. */
+  .kartenraster {
+    grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
+  }
+}
+
+/* Auf sehr breiten Bildschirmen den Text nicht unnötig in die Länge ziehen. */
+@media (min-width: 1600px) {
+  .huelle {
+    --max: 1240px;
+  }
+}
+
+/*
+ * Prüfungskarte im Raster.
+ *
+ * Als Spalte mit `margin-top: auto` an der Aufgabenzeile: Dadurch sitzt der
+ * Startknopf in jeder Karte auf derselben Höhe, auch wenn eine Beschreibung
+ * länger ist. Ohne das stünden die Knöpfe nebeneinander auf verschiedenen
+ * Höhen – der Blick findet sie dann nicht.
+ */
+.prCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.prCard .prZeile {
+  margin-top: auto;
+  padding-top: 0.65rem;
+}
+
+/* ===========================================================================
+   Prüfgerät
+   ---------------------------------------------------------------------------
+   Das Gerät soll wie ein Gerät aussehen, nicht wie ein Formular. Zwei
+   Elemente tragen das:
+
+     - das Display, deutlich abgesetzt und mit fester Schriftbreite, damit
+       sich der Wert beim Wechsel nicht verschiebt
+     - der Drehschalter als Raster beschrifteter Stellungen, jede mit ihrem
+       Symbol
+
+   Die Gefahrenleuchte bleibt bewusst zurückhaltend. Sie soll auffallen, wenn
+   das Gerät Schaden nimmt – nicht dauerhaft Aufmerksamkeit ziehen.
+   =========================================================================== */
+
+.geraet {
+  background: linear-gradient(180deg, rgb(0 0 0 / 3%), transparent 40%);
+}
+
+.displayKasten {
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.display {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  min-height: 2.6rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  background: var(--ok-bg);
+  color: var(--ok);
+  /* Feste Breite je Ziffer: sonst springt die Anzeige beim Wechsel der Stelle. */
+  letter-spacing: 0.02em;
+}
+
+.displayWert {
+  font-size: 1.9rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.displayEinheit {
+  font-size: 1rem;
+}
+
+.display.displayGefahr {
+  background: var(--falsch-bg);
+  color: var(--falsch);
+}
+
+.displayFuss {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--leise);
+}
+
+.displayGefahrLeuchte {
+  color: var(--falsch);
+  font-weight: 600;
+}
+
+/* Drehschalter-Stellungen. */
+.drehschalter {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  gap: 0.4rem;
+}
+
+button.stufe {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+  min-height: 56px;
+}
+
+button.stufe .messSymbol {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+button.stufe.aktiv {
+  background: var(--akzent);
+  color: var(--bg);
+  border-color: var(--akzent);
+}
+
+button.stufe.aktiv .klein {
+  color: inherit;
+  opacity: 0.85;
+}
+
+/* Buchsen. */
+.buchsen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+button.buchse {
+  width: auto;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0.4rem 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+button.buchse.aktiv {
+  background: var(--akzent);
+  color: var(--bg);
+  border-color: var(--akzent);
+}
+
+.buchseFest {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 1rem;
+  border: 1px dashed var(--linie);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  color: var(--leise);
+  min-height: 44px;
+}
+
+/* Messpunkt-Auswahl. */
+.messpunkte {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.messfeld {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.messfeld select {
+  font: inherit;
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  min-height: 48px;
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* Kopfzeile mit KI-Zustand links neben dem Countdown. */
+.kopfRechts {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+button.kiKurz {
+  width: auto;
+  min-height: 0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--linie);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.kiHinweis {
+  background: var(--falsch-bg);
+  border-color: var(--linie);
+  color: var(--fg);
+}
+
+.kiHinweis .prTitel {
+  color: var(--falsch);
+}
+
+/*
+ * Der klebende Hauptknopf bleibt dem Telefon vorbehalten.
+ *
+ * Auf dem Telefon ist er richtig: er hält die wichtigste Aktion in
+ * Daumenreichweite. Auf Tablet und PC überdeckte er dagegen Inhalt – im Labor
+ * die Bedienelemente der Anlage, also genau das, was man gleichzeitig braucht.
+ * Dort ist der Bildschirm groß genug, dass der Knopf ohne Kleben erreichbar
+ * ist.
+ */
+@media (min-width: 700px) {
+  button.haupt {
+    position: static;
+    bottom: auto;
+    box-shadow: none;
+  }
+}

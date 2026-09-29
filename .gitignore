@@ -1,0 +1,23 @@
+# Abhängigkeiten
+node_modules/
+
+# Bauergebnis – wird in der Veröffentlichung neu erzeugt
+dist/
+.wrangler/
+
+# Werkzeuge und Editor
+.freebuff/
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+
+# Umgebungsvariablen: hier läge ein Schlüssel, und der gehört nicht ins
+# Repository. Auf Cloudflare als Secret, lokal in `.dev.vars` (siehe unten).
+.env
+.env.local
+.dev.vars
