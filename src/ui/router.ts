@@ -5,6 +5,7 @@ export type SeitenName =
   | 'heute'
   | 'lernen'
   | 'ueben'
+  | 'tabellen'
   | 'pruefung'
   | 'labor'
   | 'fortschritt'
@@ -15,6 +16,7 @@ export const SEITEN: { id: SeitenName; label: string; kurz: string }[] = [
   { id: 'heute', label: 'Heute', kurz: 'Heute' },
   { id: 'lernen', label: 'Lernen', kurz: 'Lernen' },
   { id: 'ueben', label: 'Üben', kurz: 'Üben' },
+  { id: 'tabellen', label: 'Tabellen', kurz: 'Tabelle' },
   { id: 'pruefung', label: 'Prüfung', kurz: 'Prüf' },
   { id: 'labor', label: 'Labor', kurz: 'Labor' },
   { id: 'fortschritt', label: 'Fortschritt', kurz: 'Stand' },

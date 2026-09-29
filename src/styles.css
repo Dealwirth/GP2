@@ -333,6 +333,15 @@ hr {
   background: transparent;
 }
 
+/* Mit neun Seiten wird es auf dem Telefon eng: kleinere Schrift, damit kein
+   Eintrag abgeschnitten wird. Der PC (Seitenleiste ab 1024 px) bleibt unberührt. */
+@media (max-width: 1023px) {
+  .navigation button {
+    font-size: 0.72rem;
+    letter-spacing: -0.01em;
+  }
+}
+
 .navigation button.aktiv {
   color: var(--fg);
   font-weight: 600;

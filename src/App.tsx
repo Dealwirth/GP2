@@ -9,6 +9,7 @@ import { Labor } from './ui/seiten/Labor.tsx';
 import { Fortschritt } from './ui/seiten/Fortschritt.tsx';
 import { Bericht } from './ui/seiten/Bericht.tsx';
 import { Einstellungen } from './ui/seiten/Einstellungen.tsx';
+import { Tabellen } from './ui/seiten/Tabellen.tsx';
 import { tageBis, naechsterTermin } from './domain/termine.ts';
 import { faktBericht } from './content/facts/index.ts';
 import { KiKurzzeile, useKiStatus } from './ui/KiStatus.tsx';
@@ -72,6 +73,7 @@ export default function App() {
         {seite === 'heute' && <Heute store={store} wechsle={wechsle} />}
         {seite === 'lernen' && <Lernen store={store} wechsle={wechsle} />}
         {seite === 'ueben' && <Ueben store={store} wechsle={wechsle} />}
+        {seite === 'tabellen' && <Tabellen />}
         {seite === 'pruefung' && <Pruefung store={store} wechsle={wechsle} />}
         {seite === 'labor' && <Labor store={store} />}
         {seite === 'fortschritt' && <Fortschritt store={store} />}
