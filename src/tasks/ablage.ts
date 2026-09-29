@@ -58,3 +58,8 @@ export function holeAufgaben(ids: string[]): Task[] {
   const ablage = lade();
   return ids.map((id) => ablage.aufgaben[id]).filter((t): t is Task => Boolean(t));
 }
+
+/** Alle abgelegten Aufgaben – für Duplikatsprüfung über Sitzungen hinweg. */
+export function holeAlleAufgaben(): Task[] {
+  return Object.values(lade().aufgaben);
+}

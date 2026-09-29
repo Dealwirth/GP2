@@ -7,6 +7,7 @@
 
 import {
   DIRECT_GROQ_URL,
+  EINGEBAUTER_SCHLUESSEL,
   STANDARD_MODELL,
   type AiEinstellungen,
 } from '../ai/client.ts';
@@ -20,9 +21,7 @@ import {
 const SCHLUESSEL = 'egt-einstellungen';
 
 export interface Einstellungen {
-  /** Endpunkt des kostenlosen Cloudflare-Worker-Proxys. */
-  workerUrl: string;
-  /** Ohne Worker eingetragen, läuft die KI direkt gegen Groq. */
+  /** Optionaler eigener Schlüssel. Ohne ihn gilt der eingebaute. */
   groqKey: string;
   modelle: string[];
   /** KI-Aufgaben erzeugen lassen. */
@@ -41,8 +40,7 @@ export interface Einstellungen {
 }
 
 export const STANDARDEINSTELLUNGEN: Einstellungen = {
-  workerUrl: '',
-  groqKey: '',
+  groqKey: EINGEBAUTER_SCHLUESSEL,
   modelle: ['openai/gpt-oss-120b', 'qwen/qwen3-32b'],
   kiAktiv: true,
   zweitpruefung: true,
@@ -69,9 +67,9 @@ export function speichereEinstellungen(einstellungen: Einstellungen): void {
   localStorage.setItem(SCHLUESSEL, JSON.stringify(einstellungen));
 }
 
-/** Ist die KI überhaupt nutzbar? Sonst läuft alles mit statischen Aufgaben. */
+/** Ist die KI überhaupt nutzbar? Sonst stellt sie keine Aufgaben. */
 export function kiBereit(einstellungen: Einstellungen): boolean {
-  return einstellungen.kiAktiv && (einstellungen.workerUrl !== '' || einstellungen.groqKey !== '');
+  return einstellungen.kiAktiv;
 }
 
 /**
@@ -84,13 +82,8 @@ export function kiBereit(einstellungen: Einstellungen): boolean {
  */
 export function aiEinstellungenAus(einstellungen: Einstellungen): AiEinstellungen {
   return {
-    // Ohne eigenen Worker geht es direkt gegen Groq. Bequemer, aber der
-    // Schlüssel liegt dann im Browser – die Einstellungsseite sagt das deutlich.
-    proxyUrl:
-      einstellungen.workerUrl.trim() !== ''
-        ? einstellungen.workerUrl.trim()
-        : DIRECT_GROQ_URL,
-    apiKey: einstellungen.groqKey.trim() || undefined,
+    proxyUrl: DIRECT_GROQ_URL,
+    apiKey: einstellungen.groqKey.trim() || EINGEBAUTER_SCHLUESSEL,
     modell: einstellungen.modelle[0] ?? STANDARD_MODELL,
     aktiv: kiBereit(einstellungen),
     zweitpruefung: einstellungen.zweitpruefung,
@@ -115,6 +108,9 @@ export interface ExportPaket {
   ergebnisse: unknown;
   pruefsumme: string;
 }
+
+/** Ein Backup enthält den Schlüssel nicht – er steht im Quellcode. */
+export type ExportEinstellungen = Omit<Einstellungen, 'groqKey'>;
 
 export async function erzeugeExport(
   daten: Omit<ExportPaket, 'formatVersion' | 'erstelltAm' | 'pruefsumme'>,

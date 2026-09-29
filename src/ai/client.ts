@@ -4,40 +4,47 @@ import { VORSCHLAG_SCHEMA } from './schemas.ts';
 /**
  * KI-Zugang.
  *
- * Zwei Wege, in dieser Reihenfolge empfohlen:
+ * Ein Weg, kein Umweg: Direkt gegen Groq. Der Schlüssel liegt im Quellcode,
+ * weil dieser Trainer ein persönliches Lernwerkzeug ist, kein öffentliches
+ * Produkt. Was das bedeutet: Jeder, der den Quelltext liest, könnte das
+ * Kontingent dieses Schlüssels mitverbrauchen. Das Risiko ist begrenzt –
+ * der Gratis-Tarif kostet nichts, und Fachdaten liegen ohnehin keine im
+ * Spiel. Ein entwendeter Schlüssel ist also ärgerlich, aber harmlos; er
+ * lässt sich auf console.groq.com jederzeit neu erzeugen.
  *
- *  1. **Über den eigenen Cloudflare-Worker.** Der Schlüssel liegt beim Worker,
- *     nicht im Browser. Das ist der sichere Weg.
- *  2. **Direkt gegen Groq**, wenn ein Schlüssel im Browser hinterlegt wurde.
- *     Bequem für den Einstieg, aber der Schlüssel liegt dann im Browser –
- *     die Einstellungsseite sagt das ausdrücklich.
- *
- * In beiden Fällen gilt: Schlägt der Aufruf fehl, wirft diese Schicht einen
- * `KiNichtErreichbar`. Alles andere in der App funktioniert weiter, weil keine
- * Fachlogik von der KI abhängt.
+ * Schlägt der Aufruf fehl, wirft diese Schicht einen `KiNichtErreichbar`.
+ * Alles andere in der App funktioniert weiter, weil keine Fachlogik von der
+ * KI abhängt.
  */
 
-/** Direkter Endpunkt bei Groq – nur für Weg 2. */
+/** Direkter Endpunkt bei Groq. */
 export const DIRECT_GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+/**
+ * Der eingebaute Schlüssel.
+ *
+ * Er kommt beim Bau aus der Umgebungsvariable `VITE_GROQ_KEY` (GitHub-Actions-
+ * Secret bzw. `.env.local` für die lokale Entwicklung) und landet so in der
+ * fertigen Anwendung. Im Quelltext steht er absichtlich nicht: GitHub
+ * verweigert öffentlichen Repositories jeden Push mit Klartext-Schlüsseln,
+ * und zu Recht. Drehen oder wechseln heißt: Secret im Repository aktualisieren,
+ * nächster Bau übernimmt ihn.
+ */
+export const EINGEBAUTER_SCHLUESSEL: string =
+  (import.meta.env.VITE_GROQ_KEY as string | undefined)?.trim() ?? '';
 
 export const STANDARD_MODELLE: Record<string, string> = {
   Groq: 'openai/gpt-oss-120b',
   'Groq (schnell)': 'qwen/qwen3-32b',
-  Cerebras: 'llama-3.3-70b',
-  Gemini: 'gemini-2.0-flash',
+  'Groq (groß)': 'llama-3.3-70b',
 };
 
 export const STANDARD_MODELL: string = 'openai/gpt-oss-120b';
 
 export interface AiEinstellungen {
-  /** URL des eigenen Worker-Proxy. */
+  /** Endpunkt. Fester Wert, bleibt aus Kompatibilitätsgründen bestehen. */
   proxyUrl: string;
-  /**
-   * Schlüssel für den Direktweg.
-   *
-   * Nur gesetzt, wenn bewusst direkt gegen Groq gegangen wird. Über den Worker
-   * bleibt das Feld leer, weil der Worker den Schlüssel hält.
-   */
+  /** Schlüssel. Voreingestellt, kann in den Einstellungen ersetzt werden. */
   apiKey?: string;
   modell: string;
   aktiv: boolean;
@@ -48,9 +55,10 @@ export interface AiEinstellungen {
 }
 
 export const STANDARD_EINSTELLUNGEN: AiEinstellungen = {
-  proxyUrl: 'https://egt-proxy.workers.dev/v1/chat',
+  proxyUrl: DIRECT_GROQ_URL,
+  apiKey: EINGEBAUTER_SCHLUESSEL,
   modell: STANDARD_MODELL,
-  aktiv: false,
+  aktiv: true,
   zweitpruefung: true,
 };
 
@@ -87,9 +95,7 @@ export async function frage(
     // Bewusst nicht "ausgeschaltet": Meistens ist die KI gar nicht erst
     // eingerichtet. Der Unterschied entscheidet, welchen Schritt man als
     // Nächstes gehen muss – einschalten oder eintragen.
-    throw new KiNichtErreichbar(
-      'KI ist nicht eingerichtet – es fehlen Proxy-Adresse oder Schlüssel.',
-    );
+    throw new KiNichtErreichbar('KI ist ausgeschaltet (Einstellungen).');
   }
 
   const body: Record<string, unknown> = {
@@ -108,9 +114,16 @@ export async function frage(
     };
   }
 
-  const kopf: Record<string, string> = { 'Content-Type': 'application/json' };
-  // Direktweg: Der Schlüssel geht mit. Über den Worker bleibt er hier leer.
-  if (einstellungen.apiKey) kopf.Authorization = `Bearer ${einstellungen.apiKey}`;
+  const schlussel = einstellungen.apiKey?.trim() || EINGEBAUTER_SCHLUESSEL;
+  if (!schlussel) {
+    throw new KiNichtErreichbar(
+      'Kein Groq-Schlüssel hinterlegt. In den Einstellungen einen Schlüssel eintragen (kostenlos auf console.groq.com).',
+    );
+  }
+  const kopf: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${schlussel}`,
+  };
 
   let antwort: Response;
   try {
@@ -140,7 +153,7 @@ export async function frage(
   }
   if (antwort.status === 401 || antwort.status === 403) {
     throw new KiNichtErreichbar(
-      `Zugang abgelehnt (${antwort.status}). Schlüssel oder erlaubte Herkunft prüfen.`,
+      `Zugang abgelehnt (${antwort.status}). Schlüssel prüfen – ggf. auf console.groq.com neu erzeugen.`,
     );
   }
   if (!antwort.ok) {

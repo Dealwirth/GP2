@@ -1,32 +1,45 @@
 import type { Atom } from '../content/curriculum/types.ts';
+import type { LagerEintrag } from '../content/lernlager.ts';
 import { holeFakt } from '../content/facts/index.ts';
 
 /**
  * Systemprompts.
  *
  * Der wichtigste Satz steht in jedem Prompt: Die KI darf keine Zahlen und
- * keine Normwerte erfinden. Sie schlägt nur vor und muss jeden Wert an eine
- * Fakten-ID binden. Die Rechen-Engine liefert später die richtige Antwort.
+ * keine Normwerte erfinden. Sie bekommt das Thema aus dem Lernlager
+ * mitgeliefert – Besprechung, typische Fragen, erlaubte Fakten, Quelle –
+ * und muss jeden verwendeten Wert an eine Fakten-ID binden. Die Rechen-Engine
+ * liefert später die richtige Antwort; die Pipeline verwirft, was nicht passt.
  */
 
 const GRUNDREGELN = `
 Du bist Lernaufgaben-Ersteller für die Gesellenprüfung Teil 2 zum
 Elektroniker für Energie- und Gebäudetechnik (Bayern).
 
-HARDWARE REGELN – diese Regeln sind nicht verhandelbar:
+HARTE REGELN – nicht verhandelbar:
 1. Du ERFINDEST KEINE Zahlen, Grenzwerte, Normnummern oder Formeln.
-2. Jede Zahl, die du im Aufgabentext verwendest, muss aus einem der unten
-   genannten Fakten stammen. Du zitierst ihn mit seiner factId.
-3. Du gibst NIEMALS an, welche Antwort richtig ist. Du lieferst nur drei
-   Antwortmöglichkeiten und eine Begründung, warum die anderen falsch sind.
-4. Alles, was du nicht aus der Faktenbasis belegen kannst, kommt nicht vor.
-5. Deutsch, knapp, prüfungstauglich. Kein Füllmaterial, keine Ausschmückung.
-6. Drei Antwortmöglichkeiten, genau wie im Prüfungsbogen. Die falschen
-   Optionen müssen plausibel sein, aber eindeutig falsch.
-7. Keine Doppeldeutigkeiten: Genau eine Option muss stimmen.
+2. Jede Zahl im Aufgabentext stammt aus einem der unten gelisteten Fakten.
+   Du zitierst ihn mit seiner factId im Feld factRefs.
+3. Du gibst NIEMALS an, welche Antwort richtig ist. Du lieferst drei
+   Antwortmöglichkeiten und begründest, warum die falschen falsch sind.
+4. Inhaltlich beschränkst du dich auf die angegebene THEMA-BESPRECHUNG.
+   Was dort nicht steht, kommt nicht vor.
+5. Deutsch, knapp, prüfungsnah. Kein Füllmaterial, keine Ausschmückung.
+6. Drei Antwortmöglichkeiten wie im Prüfungsbogen. Plausibel, aber
+   eindeutig falsch – keine Randfälle, bei denen Fachleute streiten.
+7. Genau eine Option muss stimmen; keine Doppeldeutigkeiten.
+8. Wähle für jede Aufgabe das passende Rezept (berechnung) und trage die
+   Fakten-IDs dort ein. Ohne ausführbares Rezept wird die Aufgabe verworfen.
 `.trim();
 
-export function systemPromptFuerAufgaben(atom: Atom, faktenIds: string[]): string {
+/**
+ * Baut den Systemprompt aus einem Lernlager-Eintrag.
+ *
+ * Gegenüber der früheren Fassung bekommt das Modell nicht mehr nur eine
+ * Faktliste, sondern die ganze Besprechung mit typischen Fragen – es soll
+ * ja prüfungsscharfe Aufgaben stellen, nicht blinde Werte abfragen.
+ */
+export function systemPromptFuerAufgaben(atom: Atom, faktenIds: string[], lager?: LagerEintrag): string {
   const fakten = faktenIds
     .map((id) => holeFakt(id))
     .filter((f) => f !== undefined)
@@ -36,18 +49,22 @@ export function systemPromptFuerAufgaben(atom: Atom, faktenIds: string[]): strin
     })
     .join('\n');
 
-  return [
-    GRUNDREGELN,
-    '',
-    'ZIELTHEMA:',
-    `${atom.titel} – ${atom.lernziel}`,
-    `Prüfungsbereich: ${atom.bereich}`,
-    `Erwartete Häufigkeit in der Prüfung: ${atom.gewicht}/3`,
-    `Themen-ID: ${atom.id}`,
-    '',
-    'ZULÄSSIGE FAKTEN (nur diese Werte darfst du verwenden):',
-    fakten || '- Keine Zahlen verwenden. Nur Conceptual-Wissen abfragen.',
-  ].join('\n');
+  const teile: string[] = [GRUNDREGELN, '', 'ZIELTHEMA:'];
+  teile.push(`${atom.titel} – ${atom.lernziel}`);
+  teile.push(`Prüfungsbereich: ${atom.bereich}`);
+  teile.push(`Erwartete Häufigkeit in der Prüfung: ${atom.gewicht}/3`);
+  teile.push(`Themen-ID: ${atom.id}`);
+
+  if (lager) {
+    teile.push('', 'THEMA-BESPRECHUNG (deine einzige inhaltliche Grundlage):');
+    teile.push(lager.besprechung);
+    teile.push('', 'TYPISCHE PRÜFUNGSFRAGEN ZU DIESEM THEMA:');
+    for (const frage of lager.typischeFragen) teile.push(`- ${frage}`);
+  }
+
+  teile.push('', 'ZULÄSSIGE FAKTEN (nur diese Werte darfst du verwenden):');
+  teile.push(fakten || '- Keine Zahlen verwenden. Nur Begriffswissen abfragen.');
+  return teile.join('\n');
 }
 
 export const ZWEITPRUEFUNG_PROMPT = `

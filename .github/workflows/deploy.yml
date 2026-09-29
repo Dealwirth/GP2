@@ -23,38 +23,8 @@ jobs:
       - name: Faktenbericht
         run: npm run facts:check
 
-  veroeffentlichen:
-    name: Veröffentlichen
-    needs: pruefen
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - name: Sind die Cloudflare-Secrets gesetzt?
-        id: sekrete
-        # Der secrets-Kontext ist nur in env-Werten erlaubt, nicht in
-        # if-Bedingungen – deshalb der Umweg über den Ausgabewert.
-        env:
-          VORHANDEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
-        run: echo "vorhanden=$VORHANDEN" >> "$GITHUB_OUTPUT"
-      - name: Veröffentlichen
-        if: steps.sekrete.outputs.vorhanden == 'true'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist
-
-  # Eigenständige Veröffentlichung auf GitHub Pages: lädt nichts aus der
-  # Cloudflare-Einrichtung nach, sondern baut dieselbe App und stellt sie
-  # unter https://dealwirth.github.io/GP2/ bereit – Adresse für die
-  # Einbindung in Home Assistant.
+  # Die Veröffentlichung läuft über GitHub Pages: Jeder Push auf main wird
+  # geprüft, gebaut und unter https://dealwirth.github.io/GP2/ bereitgestellt.
   seiten:
     name: Seiten veröffentlichen
     needs: pruefen
@@ -74,6 +44,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # Der Schlüssel liegt als Repository-Secret und landet beim Bau in
+          # der Anwendung. Im Quelltext steht er nicht – GitHub verweigert
+          # sonst den Push (Push Protection).
+          VITE_GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

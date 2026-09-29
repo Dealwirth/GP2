@@ -61,9 +61,7 @@ export function KiWerkstatt(props: { store: Store; wechsle: (s: SeitenName) => v
         setzeZustand({
           art: 'fehler',
           grund: 'Die Anfrage kam nicht durch.',
-          naechsterSchritt:
-            'Verbindung prüfen und erneut versuchen. Der statische Aufgabenvorrat ' +
-            'steht in der Zwischenzeit weiter zur Verfügung.',
+          naechsterSchritt: 'Verbindung prüfen und erneut versuchen.',
         });
       } else if (antwort.aufgaben.length > 0) {
         setzeZustand({ art: 'bereit', modell: ai.modell, dauerMs: 0 });
@@ -106,11 +104,10 @@ export function KiWerkstatt(props: { store: Store; wechsle: (s: SeitenName) => v
       {!ai.aktiv && (
         <div className="warnung">
           <p className="klein">
-            Die KI ist nicht eingerichtet. Du brauchst dafür entweder deinen eigenen
-            Cloudflare-Worker mit Groq-Schlüssel oder trägst einen Groq-Schlüssel direkt ein.
-            Beides ist kostenlos.
+            Die KI ist ausgeschaltet – sie lässt sich in den Einstellungen wieder
+            einschalten. Ohne sie stellt diese Werkstatt keine Aufgaben.
           </p>
-          <button onClick={() => props.wechsle('einstellungen')}>Einrichten</button>
+          <button onClick={() => props.wechsle('einstellungen')}>Zu den Einstellungen</button>
         </div>
       )}
 

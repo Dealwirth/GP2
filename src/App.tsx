@@ -13,22 +13,8 @@ import { Tabellen } from './ui/seiten/Tabellen.tsx';
 import { tageBis, naechsterTermin } from './domain/termine.ts';
 import { faktBericht } from './content/facts/index.ts';
 import { KiKurzzeile, useKiStatus } from './ui/KiStatus.tsx';
+/* Die Sync-Schicht ist entfernt; der Kopf zeigt nur noch den KI-Zustand. */
 import { aiEinstellungenAus } from './ui/einstellungen.ts';
-import { useSync, type SyncZustand } from './sync/useSync.ts';
-
-/**
- * Kurzfassung des Sicherungszustands für den Kopf.
- *
- * Ob der Lernstand gesichert ist, ist keine Nebensache: Wer dauerhaft speichert,
- * will sehen, dass es passiert. Ein Wort und ein Farbpunkt genügen – die
- * Erklärung steht in den Einstellungen.
- */
-function SyncKurzzeile(props: { zustand: SyncZustand }) {
-  const { art } = props.zustand;
-  const text = art === 'aus' ? 'nur lokal' : art === 'laeuft' ? 'gleicht ab' : art === 'ok' ? 'gesichert' : 'Sicherung!';
-  const klasse = art === 'fehler' ? 'frist dringend' : art === 'ok' ? 'okText' : '';
-  return <span className={`klein ${klasse}`}>{text}</span>;
-}
 
 /**
  * Rahmen der Anwendung.
@@ -40,7 +26,6 @@ export default function App() {
   const [seite, wechsle] = useRouter();
   const store = useStore();
   const { zustand, pruefeVerbindung } = useKiStatus();
-  const sync = useSync(store);
   const ai = aiEinstellungenAus(store.einstellungen);
 
   useEffect(() => {
@@ -60,7 +45,6 @@ export default function App() {
               Einstellungen: Wenn nichts geht, soll man das sehen, ohne zu
               suchen. Der Klick führt direkt zur Prüfstelle. */}
           <KiKurzzeile zustand={zustand} onKlick={() => void pruefeVerbindung(ai)} />
-          <SyncKurzzeile zustand={sync.zustand} />
           <span className="stand">
             {termin && tage !== null ? `${tage} T` : 'Teil 2'}
           </span>
@@ -78,7 +62,7 @@ export default function App() {
         {seite === 'labor' && <Labor store={store} />}
         {seite === 'fortschritt' && <Fortschritt store={store} />}
         {seite === 'bericht' && <Bericht store={store} />}
-        {seite === 'einstellungen' && <Einstellungen store={store} sync={sync} />}
+        {seite === 'einstellungen' && <Einstellungen store={store} />}
       </main>
 
       <nav className="navigation">

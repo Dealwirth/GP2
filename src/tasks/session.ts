@@ -1,7 +1,13 @@
 import type { Task, Session, TopicStateRecord } from '../domain/types.ts';
-import { berechneNaechsteFaelligkeit, leererZustand, wendeVersuchAn } from '../domain/stateMachine.ts';
-import { statischeGrundaufgaben } from './generator.ts';
-import { holeAufgaben } from './ablage.ts';
+import {
+  berechneNaechsteFaelligkeit,
+  leererZustand,
+  wendeVersuchAn,
+  reifegrad,
+} from '../domain/stateMachine.ts';
+import { holeAufgaben, holeAlleAufgaben } from './ablage.ts';
+import { ATOME, atomeVonBereich } from '../content/curriculum/index.ts';
+import type { ExamArea } from '../domain/types.ts';
 import { storage } from '../storage/index.ts';
 
 /**
@@ -89,9 +95,9 @@ export async function stelleSitzungWieder(): Promise<Wiederherstellbar | null> {
     return null;
   }
 
-  // Erst im statischen Vorrat suchen, dann in der lokalen Ablage – dort liegen
-  // die vom Modell erzeugten Aufgaben.
-  const nachId = new Map(statischeGrundaufgaben().map((t) => [t.taskId, t]));
+  // Die Aufgaben liegen in der lokalen Ablage – dort landen alle vom
+  // Modell erzeugten Aufgaben.
+  const nachId = new Map(holeAlleAufgaben().map((t) => [t.taskId, t]));
   for (const aufgabe of holeAufgaben(gespeichert.taskIds)) {
     nachId.set(aufgabe.taskId, aufgabe);
   }
@@ -114,99 +120,81 @@ export function beendeSitzung(): void {
   laufendeSitzung = null;
 }
 
-/** Aufgaben nach geschätztem Aufwand gruppiert. */
-function gruppiere(nachStufe: (stufe: 1 | 2 | 3 | 4 | 5) => Task[]): Task[][] {
-  return [1, 2, 3, 4, 5].map((s) => nachStufe(s as 1 | 2 | 3 | 4 | 5));
+/**
+ * Themen für eine Sitzung – bewusst durchmischt.
+ *
+ * Gewichtung: fällige Wiederholungen zuerst, dann ein breiter Mix über
+ * alle vier Prüfungsbereiche. Innerhalb eines Bereichs entscheidet der
+ * Reifegrad (schwächstes zuerst), der Rest wird gemischt, damit keine
+ * Sitzung wie die vorige aussieht.
+ */
+export async function waehleThemen(anzahl: number, bereichFilter?: ExamArea): Promise<string[]> {
+  const zustaende = new Map((await storage.alleZustaende()).map((z) => [z.topicId, z]));
+  const jetzt = new Date();
+
+  const kandidaten = bereichFilter ? atomeVonBereich(bereichFilter) : ATOME;
+  const bewertet = kandidaten.map((atom) => {
+    const z = zustaende.get(atom.id);
+    const reif = z ? reifegrad(z, jetzt) : 0;
+    // Fällige Wiederholungen drängen nach vorn, verfallenes Wissen noch
+    // stärker. Der Zufallsanteil mischt – keine Sitzung wie die vorige.
+    const faelligBonus = z?.nextDue && new Date(z.nextDue) <= jetzt ? 6 : 0;
+    const verfallBonus = z?.state === 'ueberfaellig' ? 8 : 0;
+    const zufall = Math.random() * 3;
+    const score = reif * 10 - atom.gewicht - faelligBonus - verfallBonus - zufall;
+    return { id: atom.id, score };
+  });
+
+  return bewertet
+    .sort((a, b) => a.score - b.score)
+    .slice(0, anzahl)
+    .map((e) => e.id);
 }
 
 /**
- * Baut eine Session für ein Zeitbudget.
+ * Baut eine Session für ein Zeitbudget – ausschließlich mit KI-Aufgaben.
  *
- * Zusammensetzung:
- *   – zuerst Themen, die fällig sind ("vergessen" zuerst)
- *   – dann neue Aufgaben der kurzen Stufen, bis das Budget aufgebraucht ist
- *   – zuletzt Rechenaufgaben, wenn noch Zeit übrig ist
+ * Ablauf:
+ *   1. Themen durchmischt wählen (fällige zuerst, dann breiter Mix)
+ *   2. je Thema Aufgaben von der KI anfordern und prüfen lassen
+ *   3. Erfolglose Themen überspringen, bis das Budget gefüllt ist
+ *
+ * Vorher kam hier der statische Vorrat; der war auf 81 Aufgaben begrenzt und
+ * wiederholte sich. Jetzt stellt die KI jede Aufgabe, gespeist aus dem
+ * Lernlager – und die Duplikatsperre verhindert Aufgabenerschöpfung.
  */
-export async function baueSession(budget: Zeitbudget): Promise<Task[]> {
-  const zustaende = new Map((await storage.alleZustaende()).map((z) => [z.topicId, z]));
-  const heute = new Date();
-
-  const faellig = (t: Task): boolean => {
-    for (const id of t.proposal.topicIds) {
-      const z = zustaende.get(id);
-      if (!z) return false;
-      if (!z.nextDue) continue;
-      if (new Date(z.nextDue) <= heute) return true;
-    }
-    return false;
-  };
-
-  const vergessen = (t: Task): boolean =>
-    t.proposal.topicIds.some((id) => zustaende.get(id)?.state === 'ueberfaellig');
-
-  // Kandidaten sammeln. Doppelte Parameter werden von der Pipeline abgewiesen –
-  // deshalb wird hier defensiv gefiltert.
-  let pool: Task[] = [];
-  for (let versuch = 0; versuch < 3 && pool.length < 6; versuch += 1) {
-    try {
-      pool = statischeGrundaufgaben();
-      break;
-    } catch {
-      pool = [];
-    }
-  }
-
-  const sortiert = [...pool].sort((a, b) => {
-    const aVergessen = vergessen(a) ? 0 : 1;
-    const bVergessen = vergessen(b) ? 0 : 1;
-    if (aVergessen !== bVergessen) return aVergessen - bVergessen;
-    const aFaellig = faellig(a) ? 0 : 1;
-    const bFaellig = faellig(b) ? 0 : 1;
-    if (aFaellig !== bFaellig) return aFaellig - bFaellig;
-    return a.proposal.stufe - b.proposal.stufe;
-  });
-
-  const [stufe1 = [], stufe2 = [], stufe3 = [], stufe4 = [], stufe5 = []] = gruppiere((s) =>
-    sortiert.filter((t) => t.proposal.stufe === s),
-  );
+export async function baueSession(
+  budget: Zeitbudget,
+  erzeugeFuerThema: (topicId: string, anzahl: number) => Promise<Task[]>,
+  bereichFilter?: ExamArea,
+): Promise<Task[]> {
+  const themenAnzahl = Math.max(3, Math.min(6, Math.round(budget.minuten / 2.5)));
+  const themen = await waehleThemen(themenAnzahl, bereichFilter);
 
   const auswahl: Task[] = [];
+  const bekannt = new Set(holeAlleAufgaben().map((t) => t.proposal.prompt));
+  const schonInSitzung = new Set<string>();
   let budgetSekunden = budget.minuten * 60;
-  const nimm = (kandidaten: Task[], maxAnzahl: number): void => {
-    for (const t of kandidaten) {
-      if (auswahl.length >= maxAnzahl) return;
+
+  for (const topicId of themen) {
+    if (budgetSekunden <= 0) break;
+    const anzahl = budget.minuten <= 10 ? 1 : 2;
+    let neu: Task[] = [];
+    try {
+      neu = await erzeugeFuerThema(topicId, anzahl);
+    } catch {
+      neu = []; // Netz weg oder Kontingent leer: Thema überspringen.
+    }
+
+    for (const t of neu) {
+      if (budgetSekunden <= 0) break;
+      if (schonInSitzung.has(t.proposal.prompt)) continue;
+      if (bekannt.has(t.proposal.prompt)) continue; // Keine Wiederholung aus früheren Sitzungen.
       if (t.proposal.estimatedSeconds > budgetSekunden) continue;
       auswahl.push(t);
+      schonInSitzung.add(t.proposal.prompt);
       budgetSekunden -= t.proposal.estimatedSeconds;
     }
-  };
-
-  switch (budget.minuten) {
-    case 5:
-      nimm(stufe1, 5);
-      break;
-    case 10:
-      nimm(stufe1, 5);
-      nimm(stufe2, 2);
-      break;
-    case 20:
-      nimm(stufe1, 6);
-      nimm(stufe2, 3);
-      nimm(stufe3, 1);
-      break;
-    case 30:
-      nimm(stufe1, 6);
-      nimm(stufe2, 3);
-      nimm(stufe3, 1);
-      nimm(stufe4, 1);
-      break;
-    case 45:
-      nimm(stufe1, 6);
-      nimm(stufe2, 3);
-      nimm(stufe3, 2);
-      nimm(stufe4, 2);
-      nimm(stufe5, 1);
-      break;
   }
 
   return auswahl;

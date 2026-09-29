@@ -28,6 +28,7 @@ import type { SeitenName } from '../router.ts';
  */
 /** Fortschritt innerhalb der laufenden Runde – überlebt ein Neuladen. */
 interface Rundenstand {
+  sessionId: string | null;
   index: number;
   antwort: string | null;
   sicherheit: 'sicher' | 'geraten' | 'unsicher' | null;
@@ -38,8 +39,8 @@ interface Rundenstand {
 
 const RUNDE_SCHLUESSEL = 'runde-stand';
 
-function startRundenstand(): Rundenstand {
-  return { index: 0, antwort: null, sicherheit: null, antworten: [], beginn: Date.now(), ergebnis: null };
+function startRundenstand(sessionId: string | null = null): Rundenstand {
+  return { sessionId, index: 0, antwort: null, sicherheit: null, antworten: [], beginn: Date.now(), ergebnis: null };
 }
 
 export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; pruefung?: boolean }) {
@@ -49,6 +50,16 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
   // wiederhergestellt – und der Stand innerhalb der Runde dazu.
   const [laufend, setLaufend] = useState(() => holeSitzung());
   const [stand, setStand] = useGespeichert<Rundenstand>(RUNDE_SCHLUESSEL, startRundenstand());
+
+  // Gehört der gemerkte Rundenspeicher noch zu dieser Sitzung? Nach dem
+  // Beenden blieb früher das Ergebnis stehen – eine neu gestartete Sitzung
+  // zeigte dann „Sitzung beendet", statt die neuen Aufgaben zu stellen.
+  // Genau das war die Blockade nach der ersten Einheit.
+  useEffect(() => {
+    if (laufend && stand.sessionId !== laufend.sitzung.sessionId) {
+      setStand(startRundenstand(laufend.sitzung.sessionId));
+    }
+  }, [laufend, stand.sessionId, setStand]);
 
   const { index, antwort, sicherheit, beginn, ergebnis } = stand;
   const setSicherheit = (s: 'sicher' | 'geraten' | 'unsicher' | null): void =>

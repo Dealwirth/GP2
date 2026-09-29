@@ -28,9 +28,10 @@ import {
   type ProtokollEintrag,
 } from '../../labor/pruefprotokoll.ts';
 import { PHASEN, minuteAlsUhrzeit, tagesUebersicht, PHASEN_PUNKTE_GESAMT } from '../../labor/ablauf.ts';
+import { Praxisteil } from './Praxis.tsx';
 import type { Store } from '../store.ts';
 
-type LaborTeil = 'stationen' | 'messgeraet' | 'plan' | 'protokoll' | 'ablauf';
+type LaborTeil = 'auftrag' | 'stationen' | 'messgeraet' | 'plan' | 'protokoll' | 'ablauf';
 
 /**
  * Labor.
@@ -49,6 +50,7 @@ export function Labor(props: { store: Store }) {
       <div className="reiterreihe">
         {(
           [
+            ['auftrag', 'Kundenauftrag'],
             ['stationen', 'Stationen'],
             ['messgeraet', 'Messgerät'],
             ['plan', 'Stromlaufplan'],
@@ -62,6 +64,7 @@ export function Labor(props: { store: Store }) {
         ))}
       </div>
 
+      {teil === 'auftrag' && <Praxisteil store={props.store} />}
       {teil === 'stationen' && <Stationen store={props.store} />}
       {teil === 'messgeraet' && <MessgeraetSeite />}
       {teil === 'plan' && <PlanSeite store={props.store} />}

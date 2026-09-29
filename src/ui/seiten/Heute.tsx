@@ -1,8 +1,12 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { Store } from '../store.ts';
 import type { SeitenName } from '../router.ts';
 import { BUDGETS, type Zeitbudget } from '../../tasks/session.ts';
 import { baueSession, startSitzung } from '../../tasks/session.ts';
+import { erzeugeAufgaben } from '../../ai/generator.ts';
+import { aiEinstellungenAus } from '../einstellungen.ts';
+import { merkeAufgaben } from '../../tasks/ablage.ts';
+import { deuteFehler } from '../KiStatus.tsx';
 import type { Task } from '../../domain/types.ts';
 import { PRUEFUNGSBEREICHE, TEIL2_BEREICHE } from '../../content/syllabus/exam.ts';
 import {
@@ -16,7 +20,7 @@ import {
   ZUSTAENDIGE_STELLE,
 } from '../../domain/termine.ts';
 import { reifegrad } from '../../domain/stateMachine.ts';
-import { reife } from '../../content/curriculum/index.ts';
+import { reife, holeAtom } from '../../content/curriculum/index.ts';
 
 /**
  * Startseite.
@@ -27,15 +31,39 @@ import { reife } from '../../content/curriculum/index.ts';
  */
 export function Heute(props: { store: Store; wechsle: (s: SeitenName) => void }) {
   const { store } = props;
+  const [wirdGebaut, setWirdGebaut] = useState(false);
+  const [hinweis, setHinweis] = useState<string | null>(null);
 
   const starten = useCallback(
     async (budget: Zeitbudget) => {
-      const tasks = await baueSession(budget);
-      if (tasks.length === 0) return;
-      startSitzung(tasks, budget, 'pause');
-      location.hash = '#/ueben';
+      setWirdGebaut(true);
+      setHinweis(null);
+      try {
+        const ai = aiEinstellungenAus(store.einstellungen);
+        const tasks = await baueSession(budget, (topicId, anzahl) => {
+          const atom = holeAtom(topicId);
+          if (!atom) return Promise.resolve([]);
+          return erzeugeAufgaben(ai, atom, anzahl).then((ergebnis) => {
+            merkeAufgaben(ergebnis.aufgaben);
+            return ergebnis.aufgaben;
+          });
+        });
+        if (tasks.length === 0) {
+          setHinweis(
+            'Die KI konnte keine prüfbare Aufgabe liefern. Einen Moment warten und erneut versuchen – oder die Verbindung über den KI-Knopf oben prüfen.',
+          );
+          return;
+          }
+        startSitzung(tasks, budget, 'pause');
+        location.hash = '#/ueben';
+      } catch (fehler) {
+        const { grund } = deuteFehler(fehler);
+        setHinweis(grund);
+      } finally {
+        setWirdGebaut(false);
+      }
     },
-    [],
+    [store],
   );
 
   // Der Einladungsbrief schlägt den Orientierungswert: Sobald in den
@@ -56,22 +84,24 @@ export function Heute(props: { store: Store; wechsle: (s: SeitenName) => void })
         <button
           className="haupt budgetHaupt"
           onClick={() => void starten(BUDGETS[0]!)}
+          disabled={wirdGebaut}
         >
           <span className="budgetZahl">{BUDGETS[0]!.minuten}</span>
-          <span className="klein">Minuten – der Normalfall</span>
+          <span className="klein">{wirdGebaut ? 'Minuten – Aufgaben werden gestellt …' : 'Minuten – der Normalfall'}</span>
         </button>
         <div className="budget raster raster2">
           {BUDGETS.slice(1).map((b) => (
-            <button key={b.minuten} className="budgetKnopf" onClick={() => void starten(b)}>
+            <button key={b.minuten} className="budgetKnopf" onClick={() => void starten(b)} disabled={wirdGebaut}>
               <span className="budgetZahl">{b.minuten}</span>
               <span className="klein">Minuten</span>
             </button>
           ))}
         </div>
+        {hinweis && <p className="klein frist dringend">{hinweis}</p>}
         <p className="klein">
-          Mehr als fünf Minuten? Dann nimm die kleinste Stufe, die zu deiner
-          Zeit passt – Lernen in kurzen Etappen wirkt besser als eine lange,
-          unterbrochene Sitzung.
+          Jede Aufgabe stellt die KI frisch – gemischt über alle
+          Prüfungsbereiche, ohne Wiederholungen. Die Rechnung dahinter läuft
+          auf deinem Gerät.
         </p>
       </section>
 

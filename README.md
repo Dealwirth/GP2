@@ -40,14 +40,13 @@ Abstürzen aber auch.
 | **Rechen-Engine** | Deterministisch. Strombelastbarkeit, Absicherung, Abschaltbedingung, Schleifenwiderstand, Spannungsfall. Jedes Ergebnis nennt die verwendete Regel und liefert Lösungsschritte. |
 | **Lernpfad** | 211 Themen in 32 Kapiteln, gegliedert nach den Berufsbildpositionen der Fachrichtung EGT (§ 4 ElekAusbV). |
 | **Aufgabenvorrat** | 81 geprüfte Aufgaben in allen drei Antwortformaten der Prüfung: `mc`, `fall` und `strukturiert`/`offen`. Rechen- und Kennwerte aus der Faktenbasis, plus kuratierte Fallaufgaben, Fachfragen und WiSo-Fragen für alle vier Bereiche von Teil 2. |
-| **KI-Erzeugung** | Groq über einen kostenlosen Cloudflare-Worker. Schema-Zwang, Gegenrechnung, Zweitprüfung, Duplikatsperre. Fällt der Worker aus, läuft alles ohne KI weiter. |
+| **KI-Erzeugung** | Groq, direkt und ohne Zwischenstation. Jede Aufgabe wird frisch erzeugt und muss dieselbe Prüfung nehmen: Rezept durch die Rechen-Engine, Faktenbindung, Duplikatsperre, Zweitprüfung. Der Aufgabenstrom mischt alle Prüfungsbereiche und wiederholt sich nicht. |
 | **Prüfungssimulation** | Originalzeit, Originalpunkte, keine Rückmeldung vor dem Abgeben, Auswertung nach § 15 ElekAusbV. |
-| **Labor** | Vier animierte Stationen, **Prüfgerät-Simulation**, Stromlaufplan-Prüfung, Messprotokoll, 16-Stunden-Ablauf des Kundenauftrags. |
+| **Labor** | **Geführter Kundenauftrag** (Wärmepumpe, Wallbox, PV: Planung gegen die Engine, Ausführungsreihenfolge mit Sicherheitsregeln, Fachgespräch), vier animierte Stationen, **Prüfgerät-Simulation**, Stromlaufplan-Prüfung, Messprotokoll, 16-Stunden-Ablauf. |
 | **Prüfgerät** | Drehschalter mit acht Messarten, drei Buchsen, sechs Messpunkte, spannungsfrei/unter Spannung. Falsch eingestellt kommt die *echte* Anzeige heraus – 0 V bei falscher Buchse, O.L bei Widerstandsmessung unter Spannung, Kurzschluss bei Strommessung parallel. Gestaffelte Hilfe kostet 15 % Punkte je Stufe. Richtige Werte gehen mit einem Griff ins Prüfprotokoll. |
 | **Lerngedächtnis** | Zustandsautomat mit Vergessen, Sicherheitsquote (geraten zählt halb), Digest, Coach-Überwachung. Die Reife **sinkt** bei schlechter Leistung (frisches Fünf-Versuche-Fenster) und **verfällt** nach Stillstand (zustandsabhängige Halbwertszeit: 7 Tage frisch, 21 gefestigt, 45 prüfungsreif). |
-| **KI** | Kostenlos über Cloudflare Worker oder direkt mit Groq-Schlüssel. Aufgabenerzeugung in der KI-Werkstatt, Lernberatung, Verbindungstest. Jeder Fehler wird in Klartext plus **nächsten Schritt** übersetzt. Die Beratung funktioniert auch ohne KI – dann aus dem Lernstand gerechnet. |
+| **KI** | Direkt mit Groq, ohne Einrichtung. Aufgabenerzeugung aus dem Lernlager, Lernberatung, Verbindungstest. Jeder Fehler wird in Klartext plus **nächsten Schritt** übersetzt. |
 | **Zustand** | Seite, laufende Sitzung, Prüfungsfortschritt samt Restzeit, Laborzustand, Messprotokoll und Filter überleben ein Neuladen. |
-| **Überall verfügbar** | Optional: Der Lernstand liegt zusätzlich Ende-zu-Ende verschlüsselt (AES-GCM, PBKDF2) beim eigenen Cloudflare-Worker. Zweites Gerät = Verbindungscode + Passwort. Der Server sieht nur Chiffre, nie Aufgaben oder Lösungen. |
 | **Bildschirmbreiten** | Telefon: eine Spalte, Navigation unten. Tablet: breiteres Feld, Karten zweispaltig. PC: Navigation als Leiste links, Inhalt zentriert im freien Raum. |
 | **Termine** | Sommerprüfung 2027 mit Countdown, Fristen-Wächter und Phasenplan bis zum Prüfungstag. |
 | **PWA** | Installierbar, offline nutzbar. |
@@ -61,18 +60,10 @@ Browserdaten löschen den Stand mit; dafür gibt es zwei Auswege:
 **Backup als Datei.** Der Export verschlüsselt den gesamten Stand mit
 AES-GCM (PBKDF2, 150 000 Runden) – ohne Passwort gibt es keinen Export.
 
-**Überall verfügbar (optional).** In den Einstellungen legt man den Stand
-zusätzlich auf den eigenen Cloudflare-Worker – Ende-zu-Ende verschlüsselt,
-mit demselben Verfahren. Der Abgleich führt beide Seiten **zusammen**, statt
-eine durch die andere zu ersetzen; wer schneller antwortet, gewinnt bei den
-Antwortzahlen, ansonsten zählt der jüngere Eintrag. Der Server sieht nur
-Chiffre. Auf einem zweiten Gerät genügen der Verbindungscode (`EGT1-…`,
-enthält Worker-Adresse und Kennung, **kein Passwort**) und dasselbe Passwort.
 
 Der Stand hat ein eigenes Format mit Versionsnummer und wird fehltolerant
 eingelesen – Code-Verbesserungen reißen ihn nicht aus.
 
-Der KI-Proxy speichert nichts. Er prüft Herkunft und Raten und leitet weiter.
 
 ## Befehle
 
@@ -97,11 +88,9 @@ src/
   ai/          Groq-Client, Prompts, Zweitprüfung
   memory/      Lerngedächtnis, Digest, Coach
   labor/       Stationen, Stromlaufplan, Prüfprotokoll, 16-Stunden-Ablauf
-  sync/        Verschlüsselter Abgleich: Merge-Regeln, Transport, Verbindungscode
   crypto/      AES-GCM/PBKDF2 – dieselbe Krypto für Backup und Sync
   storage/     Speicher-Adapter (IndexedDB)
   ui/          Oberfläche, ein React-State-Hook, keine Router-Bibliothek
-worker/         Cloudflare-Worker: KI-Proxy + verschlüsselter Sync-Speicher (KV)
 ```
 
 Der Lerncode ist reines TypeScript ohne React – deshalb ist er ohne Browser
@@ -128,42 +117,37 @@ Daten aus dem Einladungsschreiben ein, gelten sie in der ganzen App als
 amtlich; an jedem Termin steht die Herkunftsstufe daneben, und die Kammer
 mit Kontakt ist auf der Stand-Seite vermerkt.
 
-## Veröffentlichen (kostenlos, ohne Kreditkarte)
+## Veröffentlichen
 
-**1. Website auf Cloudflare Pages**
+Die Website läuft automatisch über **GitHub Pages**: Jeder Push auf `main`
+wird vom Workflow geprüft, gebaut und auf
+<https://dealwirth.github.io/GP2/> veröffentlicht. Diese Adresse eignet sich
+für die **Webpage-Karte in Home Assistant** – die Tafel lädt bei jedem
+Besuch den aktuellen Stand von GitHub, ohne dass etwas kopiert wird.
 
-1. Konto auf dash.cloudflare.com anlegen
-2. Workers & Pages → Create → Pages → „Connect to Git"
-3. Repository **GP2** auswählen
-4. Build-Befehl `npm run build`, Ausgabeverzeichnis `dist`
+## KI-Anbindung
 
-Private Repositories sind im Gratis-Tarif erlaubt. Es wird nichts aus dem
-Quelltext geladen, was nicht Allgemeinwissen ist: keine Schlüssel, kein
-Lernstand, keine Notizen.
+Die Aufgabenerzeugung ruft **Groq direkt** auf – kein Worker, kein Proxy,
+keine Einrichtung. Der Schlüssel liegt im Quelltext (`src/ai/client.ts`),
+weil der Trainer ein persönliches Lernwerkzeug ist. Wer einen eigenen
+Schlüssel will: kostenlos auf [console.groq.com](https://console.groq.com),
+dann in den Einstellungen eintragen.
 
-**1b. Website über GitHub Pages (Alternative)**
+Jede KI-Aufgabe durchläuft dieselbe Pipeline, bevor sie gestellt wird:
 
-Läuft automatisch: Jeder Push auf `main` wird vom Workflow geprüft, gebaut
-und auf <https://dealwirth.github.io/GP2/> veröffentlicht. Einrichtung war
-einmalig (Settings → Pages → Source: GitHub Actions). Diese Adresse eignet
-sich für die **Webpage-Karte in Home Assistant** – die Tafel lädt dann bei
-jedem Besuch den aktuellen Stand von GitHub, ohne dass etwas kopiert wird.
+1. **Rezept** – die KI wählt eine Rechenvorschrift, die Rechen-Engine
+   ermittelt daraus den richtigen Wert. Die KI kennt ihn nie.
+2. **Optionsabgleich** – genau eine Antwortmöglichkeit muss zum Ergebnis
+   passen; mehrdeutige Aufgaben werden verworfen.
+3. **Faktenbindung** – jede Zahl im Aufgabentext muss auf einen
+   Faktenbasis-Eintrag verweisen. Freie Zahlen scheitern an der Pipeline.
+4. **Duplikatsperre** – dieselbe Aufgabe kommt nicht zweimal.
+5. **Zweitprüfung** – ein Modellaufruf prüft Eindeutigkeit und
+   Prüfungsnähe und wirft Beanstandetes heraus.
 
-**2. Worker: KI-Proxy und Sync-Speicher (einmalig)**
-
-```bash
-npx wrangler kv namespace create egt-sync   # erzeugte id in die wrangler.toml eintragen
-npx wrangler deploy
-npx wrangler secret put GROQ_API_KEY
-```
-
-Die Namespace-Id kommt in `wrangler.toml` in den Block `[[kv_namespaces]]`
-(dort auskommentiert vorgemerkt). Ohne KV läuft der KI-Proxy, aber kein Sync;
-die App zeigt das in den Einstellungen an. Anschließend die Worker-Adresse
-(`https://<name>.workers.dev`) in den Einstellungen eintragen. Fällt der
-Worker aus, ist nur die Aufgabenerzeugung stumm und der Stand bleibt lokal –
-Lernpfad, Wiederholung und Prüfungssimulation laufen ohne KI weiter.
-
+Grundlage jedes Prompts ist das **Lernlager** (`src/content/lernlager.ts`):
+Themenbesprechungen, typische Prüfungsfragen und die je Thema erlaubten
+Fakten mit Quellen.
 ## Zwei Wege, die nicht vermischt werden
 
 Leiterquerschnitt und Absicherung lassen sich über die Referenzwerte I_z oder

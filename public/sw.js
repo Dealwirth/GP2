@@ -34,7 +34,7 @@ self.addEventListener('fetch', (ereignis) => {
   const url = new URL(anfrage.url);
 
   // KI-Endpunkte niemals anfassen.
-  if (url.pathname.includes('/api/') || url.hostname.includes('groq.com') || url.hostname.includes('workers.dev')) {
+  if (url.pathname.includes('/api/') || url.hostname.includes('groq.com')) {
     return;
   }
 

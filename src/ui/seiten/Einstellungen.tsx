@@ -9,8 +9,6 @@ import {
 } from '../einstellungen.ts';
 import { STANDARD_MODELLE } from '../../ai/client.ts';
 import { speichereErgebnisse } from '../../storage/ergebnisse.ts';
-import { SyncKarte } from '../SyncKarte.tsx';
-import type { SyncSteuerung } from '../../sync/useSync.ts';
 import type { Store } from '../store.ts';
 
 /**
@@ -20,7 +18,7 @@ import type { Store } from '../store.ts';
  * was passiert mit deinen Daten. Beides wird hier beantwortet – ohne Umwege
  * und ohne Account.
  */
-export function Einstellungen(props: { store: Store; sync: SyncSteuerung }) {
+export function Einstellungen(props: { store: Store }) {
   const { store } = props;
   const einstellungSetzen = store.einstellungSetzen;
   const zuruecksetzen = store.zuruecksetzen;
@@ -104,20 +102,10 @@ export function Einstellungen(props: { store: Store; sync: SyncSteuerung }) {
           Zweitprüfung durch zweites Modell
         </label>
 
-        <label className="eingabeZeile">
-          <span>Worker-Adresse</span>
-          <input
-            type="url"
-            inputMode="url"
-            placeholder="https://egt-proxy.workers.dev"
-            value={store.einstellungen.workerUrl}
-            onChange={(e) => aendern({ workerUrl: e.target.value })}
-          />
-        </label>
         <p className="klein">
-          Der kostenlose Cloudflare-Worker hält den API-Schlüssel geheim und gibt
-          nichts weiter. Ohne Worker trägst du den Schlüssel direkt ein – dann
-          verlässt er dein Gerät direkt an Groq.
+          Der Groq-Schlüssel ist fest eingebaut – die KI arbeitet sofort, ohne
+          Einrichtung. Wer einen eigenen Schlüssel nutzen will, kann ihn hier
+          ersetzen (kostenlos auf console.groq.com).
         </p>
 
         <label className="eingabeZeile">
@@ -147,8 +135,8 @@ export function Einstellungen(props: { store: Store; sync: SyncSteuerung }) {
 
         <p className={`klein ${kiBereit(store.einstellungen) ? 'okText' : 'frist dringend'}`}>
           {kiBereit(store.einstellungen)
-            ? 'KI ist bereit. Aufgaben werden zusätzlich zu den geprüften Grundaufgaben erzeugt.'
-            : 'KI ist nicht verbunden. Es funktioniert alles außer der Aufgabenerzeugung.'}
+            ? 'KI ist bereit. Jede Aufgabe wird frisch erzeugt und geprüft.'
+            : 'KI ist ausgeschaltet. Es entstehen keine Aufgaben.'}
         </p>
       </section>
 
@@ -206,15 +194,12 @@ export function Einstellungen(props: { store: Store; sync: SyncSteuerung }) {
         </label>
       </section>
 
-      <SyncKarte sync={props.sync} />
-
       <section className="karte">
         <h2>Deine Daten</h2>
         <p className="klein">
-          Dein Lernstand liegt in diesem Browser – und, wenn du es oben
-          eingeschaltet hast, zusätzlich verschlüsselt auf deinem eigenen
-          Cloudflare-Worker. Gelöschte Browserdaten sind sonst weg, deshalb
-          gibt es zusätzlich das Backup als Datei.
+          Dein Lernstand liegt auf diesem Gerät – automatisch, nach jeder
+          Antwort. Gelöschte Browserdaten löschen ihn mit; deshalb gibt es das
+          Backup als Datei.
         </p>
 
         <label className="eingabeZeile">
@@ -264,9 +249,9 @@ export function Einstellungen(props: { store: Store; sync: SyncSteuerung }) {
       <section className="karte">
         <h2>Über diese Anwendung</h2>
         <p className="klein">
-          Statische Anwendung ohne Server. Der Quellcode enthält nur Programm und
-          Faktenbasis – beides Allgemeinwissen aus Verordnung und Norm. Kein
-          Schlüssel, kein Lernstand, keine Notizen im Quelltext.
+          Statische Anwendung ohne Server. Aufgaben stellt die KI (Groq),
+          gespeist aus dem eingebauten Lernlager; gerechnet und geprüft wird
+          auf deinem Gerät. Der Lernstand verlässt es nicht.
         </p>
         <p className="klein">
           Standardschnitt: {STANDARDEINSTELLUNGEN.modelle.join(', ')}

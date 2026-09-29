@@ -27,11 +27,10 @@ export function deuteFehler(fehler: unknown): { grund: string; naechsterSchritt:
 
   if (/nicht eingerichtet|ausgeschaltet/i.test(roh)) {
     return {
-      grund: 'Die KI ist nicht eingerichtet.',
+      grund: 'Die KI ist ausgeschaltet.',
       naechsterSchritt:
-        'Unter „Einstellungen" entweder die Adresse deines Cloudflare-Workers eintragen ' +
-        'oder einen Groq-Schlüssel hinterlegen. Beides ist kostenlos – alles andere ' +
-        'funktioniert auch ohne.',
+        'Unter „Einstellungen" die Aufgabenerzeugung wieder einschalten. ' +
+        'Alles andere funktioniert auch ohne KI.',
     };
   }
   if (/Rate-Limit|429|Zu viele Anfragen|Limit/i.test(roh)) {
@@ -44,37 +43,23 @@ export function deuteFehler(fehler: unknown): { grund: string; naechsterSchritt:
   }
   if (/Failed to fetch|Netzwerk|NetworkError|Load failed/i.test(roh)) {
     return {
-      grund: 'Der Proxy ist nicht erreichbar.',
+      grund: 'Groq ist von hier aus nicht erreichbar.',
       naechsterSchritt:
-        'Prüfe die Proxy-Adresse in den Einstellungen – sie muss auf deinen eigenen ' +
-        'Cloudflare-Worker zeigen. Ohne Internet arbeitet die App ohne KI weiter.',
-    };
-  }
-  if (/403|Herkunft|Origin/i.test(roh)) {
-    return {
-      grund: 'Der Proxy lehnt diese Adresse ab.',
-      naechsterSchritt:
-        'Im Worker muss ERLAUBTE_HERKUNFT auf deine Domain gesetzt sein.',
+        'Internetverbindung prüfen. Ohne Internet arbeiten Lernpfad, Wiederholung ' +
+        'und Prüfungssimulation weiter – nur die neuen Aufgaben fehlen dann.',
     };
   }
   if (/401|403|Schlüssel|api key|Gültig|invalid_api/i.test(roh)) {
     return {
       grund: 'Der Zugangsschlüssel fehlt oder gilt nicht mehr.',
       naechsterSchritt:
-        'Im Worker das Secret GROQ_API_KEY neu setzen. Der Schlüssel liegt nie im Browser.',
-    };
-  }
-  if (/500|GROQ_API_KEY|nicht gesetzt/i.test(roh)) {
-    return {
-      grund: 'Dem Proxy fehlt der Zugangsschlüssel.',
-      naechsterSchritt:
-        'Im Cloudflare-Worker unter „Variables and Secrets" GROQ_API_KEY als Secret anlegen.',
+        'Auf console.groq.com einen neuen Schlüssel erzeugen und in den ' +
+        'Einstellungen eintragen (oder im Quellcode ersetzen).',
     };
   }
   return {
     grund: roh.slice(0, 200),
-    naechsterSchritt:
-      'Erneut versuchen. Wenn es bleibt: Proxy-Adresse und Kontingent prüfen.',
+    naechsterSchritt: 'Erneut versuchen. Wenn es bleibt: Kontingent und Verbindung prüfen.',
   };
 }
 
@@ -183,8 +168,8 @@ export function KiHinweis(props: {
         <button onClick={props.onEinstellungen}>Zu den Einstellungen</button>
       </div>
       <p className="klein">
-        Alles andere läuft weiter: Lernpfad, Aufgaben, Prüfungssimulation und Labor
-        brauchen keine Verbindung.
+        Alles andere läuft weiter: Lernpfad, Wiederholung, Prüfungssimulation und
+        Labor brauchen keine Verbindung.
       </p>
     </div>
   );

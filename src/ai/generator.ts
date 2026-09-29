@@ -7,6 +7,7 @@ import { gleicheOptionenAb, rechne, RezeptFehler } from '../tasks/resolve.ts';
 import { baueTask, parameterHash, type TaskBausatz } from '../validation/pipeline.ts';
 import { holeFakt } from '../content/facts/index.ts';
 import { holeAtom } from '../content/curriculum/index.ts';
+import { lagerEintrag } from '../content/lernlager.ts';
 import type { Atom } from '../content/curriculum/types.ts';
 
 export interface GenerierungsErgebnis {
@@ -162,9 +163,18 @@ export async function erzeugeAufgaben(
     return { aufgaben: [], verworfen, kiAktiv: false };
   }
 
-  const faktenIds = relevanteFakten(atom);
-  const system = systemPromptFuerAufgaben(atom, faktenIds);
-  const nutzer = `Erstelle ${anzahl} Aufgaben zum Thema "${atom.titel}" mit Rezept.`;
+  // Das Lernlager liefert Besprechung, typische Fragen und die erlaubten
+  // Fakten. Ohne Lager-Eintrag greift die automatische Faktensammlung.
+  const lager = lagerEintrag(atom.id);
+  const faktenIds = lager && lager.faktenIds.length > 0 ? lager.faktenIds : relevanteFakten(atom);
+  const system = systemPromptFuerAufgaben(atom, faktenIds, lager ?? undefined);
+  const nutzer = [
+    `Erstelle ${anzahl} verschiedene Aufgaben zum Thema "${atom.titel}".`,
+    lager ? `Gehe dabei von dieser Besprechung aus: ${lager.typischeFragen[0] ?? atom.lernziel}` : '',
+    'Variiere den Blickwinkel zwischen den Aufgaben (Anwendung, Fehlererkennung, Wert ableiten).',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   let vorschlaege: Awaited<ReturnType<typeof frageAufgabenVorschlag>>;
   try {
