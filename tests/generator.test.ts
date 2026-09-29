@@ -40,6 +40,9 @@ function mitAntwort(antwort: unknown, fehler = false) {
 
 const EINSTELLUNGEN: AiEinstellungen = {
   proxyUrl: 'https://test.invalid/v1/chat',
+  // Eigener Test-Schlüssel: In CI ist der eingebaute Schlüssel nicht gesetzt,
+  // und die Schicht weist Anfragen ohne Schlüssel bewusst ab.
+  apiKey: 'test-schluessel',
   modell: 'openai/gpt-oss-120b',
   aktiv: true,
   // Ohne Zweitprüfung bleiben die Tests offline und deterministisch.
