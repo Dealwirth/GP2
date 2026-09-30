@@ -1,5 +1,27 @@
 # EGT-Prüfungstrainer (GP2) – Arbeitsnotizen
 
+## Zuletzt erledigt (30.09.)
+- **Duplikatsperre repariert.** Der Parameter-Hash landete schon beim Bestehen
+  der Prüfliste im modulweiten Speicher – auch wenn der Vorschlag danach an
+  der Zweitprüfung scheiterte. Er blockierte dann für den Rest der Sitzung
+  seine eigene Kombination: die Aufgabenerzeugung klappte „beim ersten Mal,
+  danach nie wieder". Jetzt vergibt `baueTask` den Hash erst nach gelungenem
+  Bau; `merkeHash` und `setzeBekannteHashes` sind exportiert. `ablage.ts`
+  meldet gespeicherte Aufgaben an die Sperre, damit sie ein Neuladen
+  übersteht. Regressionstest: `tests/duplikatsperre.test.ts`.
+- **Vorrat** (`src/tasks/vorrat.ts`): hält mindestens `einstellungen.vorrat`
+  (Voreinstellung 10) fertige Aufgaben bereit und füllt im Hintergrund nach.
+  `baueSession` nimmt zuerst aus dem Vorrat – der Start ist dann ein Zugriff,
+  kein Warten. Anzeige: `src/ui/Vorratszeile.tsx` im Kopf.
+- **Tempo**: Zweitprüfungen laufen parallel (`Promise.all` in
+  `generator.ts`), verworfene Vorschläge werden einmal mit Ablehnungsgrund
+  nachgefasst (`nachfassVersuche`), Rate-Limit wartet bis 30 s.
+- **Tabellen** sind während jeder Aufgabe als Blatt verfügbar
+  (`src/ui/TabellenBlatt.tsx`, in `Ueben.tsx` und `Pruefung.tsx`).
+- **Fehlergrenze** (`src/ui/Fehlergrenze.tsx`) um `App` in `main.tsx`.
+- **Messgerät**: Drehschalter/Buchsenwechsel setzt die Anzeige zurück –
+  vorher liefen angezeigter Wert und Bewertung auseinander.
+
 ## Projekt
 Lern-App für die Gesellenprüfung Teil 2 (Elektroniker Energie-/Gebäudetechnik,
 Bayern/Schweinfurt). React + TypeScript + Vite, Tests mit Vitest, kein Backend.
