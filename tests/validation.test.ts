@@ -190,8 +190,11 @@ describe('Statische Grundaufgaben', () => {
     leereDuplikatspeicher();
     const [erste] = statischeGrundaufgaben();
     expect(erste?.proposal.prompt).toContain('230 V');
-    expect(erste?.correctOptionId).toBe('a');
-    expect(erste?.optionRationale?.a).toContain('766,7');
+    // Die richtige Antwort steht nicht fest an erster Stelle – sie wird
+    // gemischt. Geprüft wird deshalb die Kennung, die die Aufgabe nennt.
+    const korrekt = erste?.correctOptionId;
+    expect(korrekt).toBeDefined();
+    expect(erste?.optionRationale?.[korrekt!]).toContain('766,7');
   });
 
   it('baut den festen Vorrat beliebig oft neu auf', () => {

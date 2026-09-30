@@ -22,21 +22,53 @@ function zahl(wert: number, stellen = 2): string {
   return wert.toFixed(stellen).replace('.', ',');
 }
 
-/** Erzeugt MC-Antwortmöglichkeiten, wobei die richtige Antwort eindeutig bleibt. */
+/**
+ * Erzeugt MC-Antwortmöglichkeiten und verteilt die richtige auf eine der drei
+ * Positionen.
+ *
+ * Warum die Position variiert: Stünde die richtige Antwort immer an erster
+ * Stelle, wäre die Aufgabe nach zwei Versuchen gelöst, ohne das Fach zu
+ * berühren. Bei 81 festen Aufgaben mit derselben Position wäre genau das
+ * passiert. Der Zufall wird bewusst nicht aus einer Reihenfolge abgeleitet –
+ * sonst wäre die Position über die Aufgabe hinweg vorhersagbar.
+ *
+ * Die zurückgegebene `korrekt`-Kennung ist die der richtigen Option, nicht
+ * immer „a". Alle Aufrufer richten sich danach.
+ */
 function baueOptionen(
   richtig: string,
   falsche: string[],
-): { optionen: TaskOption[]; korrekt: string } {
-  const korrekt = 'a';
-  const optionen: TaskOption[] = [
-    { id: korrekt, text: richtig },
-    ...falsche.slice(0, 2).map((f, i) => ({
-      id: String.fromCharCode(98 + i),
-      text: f,
-    })),
-  ];
-  // Deterministisch mischen, damit die Reihenfolge nicht immer gleich aussieht.
-  return { optionen, korrekt };
+): { optionen: TaskOption[]; korrekt: string; falschIds: string[] } {
+  const kennungen = ['a', 'b', 'c'];
+  const position = Math.floor(Math.random() * kennungen.length);
+  const falschIds: string[] = [];
+  let naechsteFalsche = 0;
+  const optionen: TaskOption[] = kennungen.map((id, i) => {
+    if (i === position) return { id, text: richtig };
+    falschIds.push(id);
+    return { id, text: falsche[naechsteFalsche++] ?? '' };
+  });
+  return { optionen, korrekt: kennungen[position]!, falschIds };
+}
+
+/**
+ * Ordnet die Begründungen den tatsächlichen Kennungen zu.
+ *
+ * Nötig, weil die richtige Antwort nicht mehr fest auf „a" liegt: Wer die
+ * Begründungen wie früher mit festen Schlüsseln „b" und „c" angibt, schreibt
+ * im Fall korrekt = „b" die richtige Begründung mit einer falschen überschrieben.
+ */
+function begruendungen(
+  korrekt: string,
+  richtigText: string,
+  falschIds: string[],
+  falschTexte: string[],
+): Record<string, string> {
+  const karte: Record<string, string> = { [korrekt]: richtigText };
+  falschIds.forEach((id, i) => {
+    karte[id] = falschTexte[i] ?? 'Dieser Wert passt nicht zum Rechenergebnis.';
+  });
+  return karte;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,7 +91,7 @@ export function aufgabeAbschaltbedingung(params: {
   const u0 = u0Fakt.wert;
   const ergebnis = abschaltbedingung({ u0, idnA: params.idnStromA });
 
-  const { optionen, korrekt } = baueOptionen(`${zahl(ergebnis.wert, 1)} Ω`, [
+  const { optionen, korrekt, falschIds } = baueOptionen(`${zahl(ergebnis.wert, 1)} Ω`, [
     `${zahl(u0 / (params.idnStromA * 10), 1)} Ω`,
     `${zahl(ergebnis.wert * 2, 1)} Ω`,
   ]);
@@ -89,11 +121,15 @@ export function aufgabeAbschaltbedingung(params: {
     proposal,
     paramsHash: parameterHash(['abschalt', u0, params.idnStromA]),
     correctOptionId: korrekt,
-    optionRationale: {
-      [korrekt]: `R_A = ${zahl(u0, 0)} V / ${zahl(params.idnStromA, 2)} A = ${zahl(ergebnis.wert, 1)} Ω.`,
-      b: 'Hier wurde der Fehlerstrom um einen Faktor 10 falsch angesetzt.',
-      c: 'Das ist der doppelte Wert – U₀ wurde verdoppelt.',
-    },
+    optionRationale: begruendungen(
+      korrekt,
+      `R_A = ${zahl(u0, 0)} V / ${zahl(params.idnStromA, 2)} A = ${zahl(ergebnis.wert, 1)} Ω.`,
+      falschIds,
+      [
+        'Hier wurde der Fehlerstrom um einen Faktor 10 falsch angesetzt.',
+        'Das ist der doppelte Wert – U₀ wurde verdoppelt.',
+      ],
+    ),
     solutionSteps: ergebnis.steps,
     explanation:
       `R_A ≤ U₀ / I_Δn = ${zahl(u0, 0)} / ${zahl(params.idnStromA, 2)} = ${zahl(ergebnis.wert, 1)} Ω.`,
@@ -118,7 +154,7 @@ export function aufgabeStrombelastbarkeit(params: {
   const richtigeZahl = ergebnis.wert;
   const falsch = [richtigeZahl * 0.5, richtigeZahl * 1.5].map((w) => `${zahl(w, 0)} A`);
 
-  const { optionen, korrekt } = baueOptionen(`${zahl(richtigeZahl, 0)} A`, falsch);
+  const { optionen, korrekt, falschIds } = baueOptionen(`${zahl(richtigeZahl, 0)} A`, falsch);
 
   const quelle = params.weg === 'referenz-iz' ? 'iz-tabelle-verlegeart-c' : 'absicherung-schultabelle';
   const factRefs: TaskProposal['factRefs'] =
@@ -147,11 +183,15 @@ export function aufgabeStrombelastbarkeit(params: {
     proposal,
     paramsHash: parameterHash(['iz', params.querschnittMm2, params.weg]),
     correctOptionId: korrekt,
-    optionRationale: {
-      [korrekt]: `${zahl(richtigeZahl, 0)} A ist der hinterlegte Wert für diesen Querschnitt.`,
-      b: 'Das ist zu niedrig – der Wert gehört zu einem kleineren Querschnitt.',
-      c: 'Das ist zu hoch – der Wert gehört zu einem größeren Querschnitt.',
-    },
+    optionRationale: begruendungen(
+      korrekt,
+      `${zahl(richtigeZahl, 0)} A ist der hinterlegte Wert für diesen Querschnitt.`,
+      falschIds,
+      [
+        'Das ist zu niedrig – der Wert gehört zu einem kleineren Querschnitt.',
+        'Das ist zu hoch – der Wert gehört zu einem größeren Querschnitt.',
+      ],
+    ),
     solutionSteps: ergebnis.steps,
     explanation: `${zahl(params.querschnittMm2, 1)} mm² → ${zahl(richtigeZahl, 0)} A.`,
   });
@@ -176,7 +216,7 @@ export function aufgabeFaktwert(params: {
   }
 
   const richtig = `${zahl(fakt.wert, 2)} ${params.einheitenAntwort}`.trim();
-  const { optionen, korrekt } = baueOptionen(richtig, [
+  const { optionen, korrekt, falschIds } = baueOptionen(richtig, [
     `${zahl(fakt.wert * 2, 2)} ${params.einheitenAntwort}`.trim(),
     `${zahl(fakt.wert / 2, 2)} ${params.einheitenAntwort}`.trim(),
   ]);
@@ -199,11 +239,12 @@ export function aufgabeFaktwert(params: {
     proposal,
     paramsHash: parameterHash(['fakt', params.factId, params.frage]),
     correctOptionId: korrekt,
-    optionRationale: {
-      [korrekt]: `${fakt.bezeichnung}: ${fakt.bemerkung ?? richtig}`,
-      b: 'Doppelt so groß.',
-      c: 'Halb so groß.',
-    },
+    optionRationale: begruendungen(
+      korrekt,
+      `${fakt.bezeichnung}: ${fakt.bemerkung ?? richtig}`,
+      falschIds,
+      ['Doppelt so groß.', 'Halb so groß.'],
+    ),
     solutionSteps: [
       {
         label: 'Wert aus der Faktenbasis',

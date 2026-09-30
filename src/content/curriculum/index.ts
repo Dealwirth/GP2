@@ -2,7 +2,7 @@ import type { ExamArea } from '../../domain/types.ts';
 import type { Atom, KapitelDef } from './types.ts';
 import { expandiere } from './types.ts';
 import { ALLE_KAPITEL } from './schriftlich.ts';
-import { reifegrad, istVerfallen } from '../../domain/stateMachine.ts';
+import { reifegrad, istVerfallen, effektiverZustand } from '../../domain/stateMachine.ts';
 import type { TopicStateRecord } from '../../domain/types.ts';
 
 /**
@@ -98,7 +98,8 @@ export function abdeckung(
       verfallen += 1;
       continue;
     }
-    if (zustand.state === 'gefestigt' || zustand.state === 'pruefungsreif') {
+    const state = effektiverZustand(zustand, jetzt);
+    if (state === 'gefestigt' || state === 'pruefungsreif') {
       gefestigt += 1;
       gewichtetGefestigt += atom.gewicht;
     }
@@ -135,7 +136,7 @@ export function faelligeThemen(
   return ATOME.filter((atom) => {
     const zustand = zustaende.get(atom.id);
     if (!zustand) return false;
-    if (zustand.state === 'ueberfaellig') return true;
+    if (effektiverZustand(zustand, jetzt) === 'ueberfaellig') return true;
     if (!zustand.nextDue) return false;
     return new Date(zustand.nextDue) <= jetzt;
   });

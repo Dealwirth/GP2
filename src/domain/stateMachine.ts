@@ -107,6 +107,43 @@ export function verfallFaktor(record: TopicStateRecord, jetzt: Date = new Date()
 }
 
 /**
+ * Ab welcher Verfallshöhe der Zustand auf `ueberfaellig` umschlägt.
+ *
+ * 0,5 bedeutet: Der Zustand ist auf die Hälfte des Ausgangswerts gefallen.
+ * Das entspricht bei gefestigtem Wissen rund 21 Tagen, bei einmal Gesehenem
+ * rund 7 Tagen ohne Wiederholung – nah an der Halbwertszeit, aber bewusst
+ * erst dort: In der Karenzzeit und kurz danach bleibt alles, wie es war.
+ */
+export const VERFALL_SCHWELLE = 0.5;
+
+/**
+ * Leitet den Verfall aus dem Kalender ab, statt auf ein Ereignis zu warten.
+ *
+ * Vorher blieb `ueberfaellig` unerreichbar: Der Zustand wurde nur gesetzt,
+ * wenn jemand ausdrücklich das Ereignis `ueberfaellig` auslöste – und das tat
+ * keine Stelle. Folge: „X Themen verfallen" stand immer auf null, der Coach
+ * meldete es nie, und der Wiederholungsbonus im Sitzungs-Baukasten war toter
+ * Code. Die Anzeige war da, die Zahl dahinter nicht.
+ *
+ * Der Zustand ist eine reine Funktion aus Zustand und letztem Kontakt. Er
+ * wird beim Lesen berechnet und nirgends gespeichert: Ein gespeicherter Wert
+ * würde nur den Stand vom letzten Schreibvorgang zeigen, und der Lernstand
+ * verfällt gerade dann, wenn gar nichts geschrieben wird.
+ *
+ * Der gespeicherte Zustand bleibt unangetastet – `pruefungsreif` geht durch
+ * Stillstand nicht verloren. Er wird nur so lange als `ueberfaellig`
+ * angezeigt, bis wieder geübt wird; dann greift der gespeicherte Wert erneut.
+ */
+export function effektiverZustand(
+  record: TopicStateRecord,
+  jetzt: Date = new Date(),
+): TopicState {
+  if (record.state === 'neu' || record.answered === 0) return record.state;
+  if (record.state === 'ueberfaellig') return 'ueberfaellig';
+  return verfallFaktor(record, jetzt) < VERFALL_SCHWELLE ? 'ueberfaellig' : record.state;
+}
+
+/**
  * Reifegrad eines Themas als Zahl 0..1 – für Abdeckung und Prognose.
  *
  * Drei Bestandteile, und jeder hat einen Grund:
@@ -131,6 +168,11 @@ export function reifegrad(record: TopicStateRecord, jetzt: Date = new Date()): n
   const frisch = fensterQuote(record, langfristig);
   const basis = 0.65 * langfristig + 0.35 * frisch;
 
+  // Der Verfall folgt der Halbwertszeit des gespeicherten Zustands. Der
+  // abgeleitete Zustand `ueberfaellig` steuert Anzeige und Auswahl, nicht die
+  // Rechnung – würde er auch die Halbwertszeit umschalten, spränge die Reife
+  // an der Schwelle an einem Tag von rund 0,44 auf 0,02. Ein solcher Sprung
+  // sähe wie ein Fehler aus und wäre auch einer.
   return Math.max(0, Math.min(0.98, basis * verfallFaktor(record, jetzt)));
 }
 
@@ -149,9 +191,9 @@ function fensterQuote(record: TopicStateRecord, ersatz: number): number {
  * so weit abgefallen sein, dass es nicht mehr als gesichert gelten darf.
  */
 export function istVerfallen(record: TopicStateRecord, jetzt: Date = new Date()): boolean {
-  if (record.state === 'ueberfaellig') return true;
+  if (effektiverZustand(record, jetzt) === 'ueberfaellig') return true;
   if (!istGefestigt(record)) return false;
-  return verfallFaktor(record, jetzt) < 0.7;
+  return verfallFaktor(record, jetzt) < VERFALL_SCHWELLE;
 }
 
 export type Versuch = LernEreignis & {

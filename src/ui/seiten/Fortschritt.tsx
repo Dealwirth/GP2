@@ -337,7 +337,9 @@ function Beratungskarte(props: { store: Store }) {
       // `holeBeratung` fällt bei jedem Fehler auf die gerechnete Beratung
       // zurück. Deshalb gibt es hier keinen Fehlerzweig: Es kommt immer ein
       // Text zurück, schlimmstenfalls ohne Feinschliff.
-      setBeratung(await holeBeratung(ai, store.digest));
+      setBeratung(
+        await holeBeratung(ai, store.digest, undefined, store.einstellungen.eigenerCoachHinweis),
+      );
     } finally {
       setLaeuft(false);
     }

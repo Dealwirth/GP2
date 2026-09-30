@@ -32,6 +32,13 @@ export default function App() {
     document.documentElement.dataset.seite = seite;
   }, [seite]);
 
+  // Die Einstellung „Animationen" steuert die pulsierende Leitung im
+  // Schaltungsbild. Sie wirkt über ein Attribut am Wurzelelement, damit die
+  // Entscheidung in CSS bleibt und nicht in jede Animationsstelle kopiert wird.
+  useEffect(() => {
+    document.documentElement.dataset.animationen = store.einstellungen.animationen ? 'an' : 'aus';
+  }, [store.einstellungen.animationen]);
+
   const termin = naechsterTermin();
   const bericht = faktBericht();
   const tage = termin ? tageBis(termin.datum) : null;

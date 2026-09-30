@@ -5,7 +5,7 @@ import { KiNichtErreichbar, frage, frageAufgabenVorschlag, type AiEinstellungen 
 import { ZWEITPRUEFUNG_PROMPT, systemPromptFuerAufgaben } from './prompts.ts';
 import { gleicheOptionenAb, rechne, RezeptFehler } from '../tasks/resolve.ts';
 import { baueTask, parameterHash, type TaskBausatz } from '../validation/pipeline.ts';
-import { holeFakt } from '../content/facts/index.ts';
+import { FAKTEN, holeFakt } from '../content/facts/index.ts';
 import { holeAtom } from '../content/curriculum/index.ts';
 import { lagerEintrag } from '../content/lernlager.ts';
 import type { Atom } from '../content/curriculum/types.ts';
@@ -31,13 +31,15 @@ interface RohVorschlag {
 
 /** Fakten, die für ein Thema infrage kommen – gesammelt über die Tags. */
 export function relevanteFakten(atom: Atom): string[] {
+  // Zwei Wege: über den fachlichen Zuschnitt des Themas (Fakten-Tags) und
+  // über die Grundfakten, die für Rechen- und Normenthemen immer gelten.
   const tags = new Set<string>([atom.fachlich, atom.kapitelId.split('-')[1] ?? '']);
   const ids = new Set<string>();
 
-  // Fakten mit passenden Tags
-  for (const f of holeFakt('u0-230') ? [{ tags: ['spannung', 'tn-system'], id: 'u0-230' }, { tags: ['spannung', 'drehstrom'], id: 'u0-400' }, { tags: ['selv', 'kleinspannung'], id: 'u0-24' }, { tags: ['abschaltbedingung'], id: 'u0-50' }] : []) {
-    if (f.tags.some((t) => tags.has(t))) ids.add(f.id);
+  for (const fakt of FAKTEN) {
+    if (fakt.tags.some((t) => tags.has(t))) ids.add(fakt.id);
   }
+
   if (atom.fachlich === 'norm' || atom.fachlich === 'rechnen') {
     for (const id of [
       'idn-personenschutz',
@@ -51,10 +53,9 @@ export function relevanteFakten(atom: Atom): string[] {
       'ls-kennlinie-d-magnetisch-min',
       're-grenzwert',
     ]) {
-      ids.add(id);
+      if (holeFakt(id)) ids.add(id);
     }
   }
-  void tags;
   return [...ids];
 }
 
@@ -104,43 +105,39 @@ function baueTaskAusVorschlag(
         : (o.begruendungWennFalsch ?? 'Dieser Wert passt nicht zum Rechenergebnis.');
   }
 
-  try {
-    return {
-      entwurf: {
-        // Nur KI-Aufgaben unterliegen der Duplikatsperre: sie soll verhindern,
-        // dass das Modell dieselbe Aufgabe noch einmal erfindet.
-        validierungsOptionen: { duplikatPruefen: true },
-        proposal: {
-          proposalId: `ki_${atom.id}_${abgleich.erkannterWert}`,
-          format: 'mc',
-          stufe: vorschlag.stufe as 1 | 2 | 3 | 4,
-          estimatedSeconds: vorschlag.stufe === 1 ? 25 : vorschlag.stufe === 2 ? 60 : 180,
-          examArea: vorschlag.examArea as Task['proposal']['examArea'],
-          topicIds: vorschlag.topicIds.length > 0 ? vorschlag.topicIds : [atom.id],
-          prompt: vorschlag.prompt,
-          options: optionen,
-          factRefs: vorschlag.factRefs,
-          learningGoal: vorschlag.learningGoal,
-          hint: vorschlag.hinweis,
-          origin: 'ki',
-        },
-        paramsHash: parameterHash([
-          atom.id,
-          vorschlag.berechnung.art,
-          JSON.stringify(vorschlag.berechnung),
-          vorschlag.prompt,
-        ]),
-        correctOptionId: abgleich.korrektOptionId,
-        optionRationale: rationale,
-        solutionSteps: ergebnis.steps,
-        explanation:
-          ergebnis.steps.at(-1)?.result ??
-          `${abgleich.erkannterWert} ${ergebnis.einheit}`,
+  return {
+    entwurf: {
+      // Nur KI-Aufgaben unterliegen der Duplikatsperre: sie soll verhindern,
+      // dass das Modell dieselbe Aufgabe noch einmal erfindet.
+      validierungsOptionen: { duplikatPruefen: true },
+      proposal: {
+        proposalId: `ki_${atom.id}_${abgleich.erkannterWert}`,
+        format: 'mc',
+        stufe: vorschlag.stufe as 1 | 2 | 3 | 4,
+        estimatedSeconds: vorschlag.stufe === 1 ? 25 : vorschlag.stufe === 2 ? 60 : 180,
+        examArea: vorschlag.examArea as Task['proposal']['examArea'],
+        topicIds: vorschlag.topicIds.length > 0 ? vorschlag.topicIds : [atom.id],
+        prompt: vorschlag.prompt,
+        options: optionen,
+        factRefs: vorschlag.factRefs,
+        learningGoal: vorschlag.learningGoal,
+        hint: vorschlag.hinweis,
+        origin: 'ki',
       },
-    };
-  } catch (fehler) {
-    return { grund: fehler instanceof Error ? fehler.message : 'Validierung fehlgeschlagen.' };
-  }
+      paramsHash: parameterHash([
+        atom.id,
+        vorschlag.berechnung.art,
+        JSON.stringify(vorschlag.berechnung),
+        vorschlag.prompt,
+      ]),
+      correctOptionId: abgleich.korrektOptionId,
+      optionRationale: rationale,
+      solutionSteps: ergebnis.steps,
+      explanation:
+        ergebnis.steps.at(-1)?.result ??
+        `${abgleich.erkannterWert} ${ergebnis.einheit}`,
+    },
+  };
 }
 
 /**

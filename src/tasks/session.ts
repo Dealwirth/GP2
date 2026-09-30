@@ -1,6 +1,7 @@
 import type { Task, Session, TopicStateRecord } from '../domain/types.ts';
 import {
   berechneNaechsteFaelligkeit,
+  effektiverZustand,
   leererZustand,
   wendeVersuchAn,
   reifegrad,
@@ -139,7 +140,7 @@ export async function waehleThemen(anzahl: number, bereichFilter?: ExamArea): Pr
     // Fällige Wiederholungen drängen nach vorn, verfallenes Wissen noch
     // stärker. Der Zufallsanteil mischt – keine Sitzung wie die vorige.
     const faelligBonus = z?.nextDue && new Date(z.nextDue) <= jetzt ? 6 : 0;
-    const verfallBonus = z?.state === 'ueberfaellig' ? 8 : 0;
+    const verfallBonus = z && effektiverZustand(z, jetzt) === 'ueberfaellig' ? 8 : 0;
     const zufall = Math.random() * 3;
     const score = reif * 10 - atom.gewicht - faelligBonus - verfallBonus - zufall;
     return { id: atom.id, score };

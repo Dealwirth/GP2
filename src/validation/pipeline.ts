@@ -112,12 +112,23 @@ export function pruefeFaktenbindung(
   for (const ref of proposal.factRefs) {
     const fakt = holeFakt(ref.factId);
     if (!fakt) continue;
-    if (fakt.wert !== undefined) {
+    const basis = fakt.wert;
+    if (basis !== undefined) {
       // Auch die in der Praxis üblichen Darstellungen gelten als belegt:
       // 0,3 A wird auch als 300 mA geschrieben.
-      for (const skala of [1, 100, 1000]) gebunden.add(runde(fakt.wert * skala));
+      for (const skala of [1, 100, 1000]) gebunden.add(runde(basis * skala));
+      // `ref.value` ist nur eine andere Schreibweise DESSELBEN Wertes, keine
+      // zweite Quelle. Früher wurde jeder Wert hier ungeprüft übernommen –
+      // damit konnte eine erfundene Zahl als `value` an eine echte factId
+      // gehängt werden und die Bindung war umgangen. Jetzt zählt `value` nur,
+      // wenn es der zitierte Fakt selbst hergibt.
+      if (ref.value !== undefined) {
+        const wert = alsZahl(String(ref.value));
+        if (wert !== null && [1, 100, 1000].some((s) => runde(basis * s) === runde(wert))) {
+          gebunden.add(runde(wert));
+        }
+      }
     }
-    if (ref.value !== undefined) gebunden.add(runde(Number(ref.value)));
     // Querschnitte, Kennlinien und Grenzwerte stehen im erläuternden Text.
     for (const z of sammleZahlen(fakt.bemerkung ?? '')) {
       const wert = alsZahl(z);

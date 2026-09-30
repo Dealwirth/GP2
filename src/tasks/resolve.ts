@@ -130,6 +130,60 @@ function zahlAusOption(text: string): number | null {
   return Number.isFinite(wert) ? wert : null;
 }
 
+/**
+ * Übersetzt Vorsätze in den Faktor zur Grundeinheit.
+ *
+ * Damit wird aus „300 mA" und „0,3 A" derselbe Wert, und aus „2,5 kΩ" und
+ * „2500 Ω" ebenso. Ohne das würde eine Zahl nur dann passen, wenn zufällig
+ * dieselbe Schreibweise getroffen wurde.
+ */
+const VORSAETZE: Record<string, number> = {
+  p: 1e-12,
+  n: 1e-9,
+  u: 1e-6,
+  'µ': 1e-6,
+  m: 1e-3,
+  k: 1e3,
+  M: 1e6,
+};
+
+/** Liefert den ersten Vorsatz direkt hinter der Zahl, falls einer dasteht. */
+function vorsatzFaktor(text: string): number {
+  const treffer = text.match(/-?\d+(?:[.,]\d+)?\s*([pnuµmkM])(?=[A-Za-zΩΩ]|$)/);
+  if (!treffer) return 1;
+  return VORSAETZE[treffer[1] ?? ''] ?? 1;
+}
+
+/** Zeichen, die eine Einheit tragen – Buchstaben, Ohm- und Prozentzeichen. */
+const EINHEIT_ZEICHEN = /[A-Za-zΩωΩ%]/;
+
+/**
+ * Entspricht die Einheit der Option der erwarteten?
+ *
+ * Die frühere Fassung ließ den Einheitenvergleich offen – ein Kommentar stand
+ * dort, wo die Prüfung hätte stehen müssen. Folge: „166,7 mA" galt als
+ * richtige Antwort auf ein Ergebnis in Ω. Bei einem Prüfungstrainer ist das
+ * ein falsches Lob, und das ist schlimmer als eine Ablehnung.
+ *
+ * Verglichen wird buchstabenweise, ohne Vorsatz und Kleinschreibung: „0,3 A"
+ * passt damit auf die Engine-Einheit „A" ebenso wie auf „a", „166,7 Ω" auf
+ * „Ω". Toleranz gibt es nur dort, wo sie nichts verdeckt: Steht in der Option
+ * gar keine Einheit, wird sie akzeptiert – eine reine Zahl ist keine falsche
+ * Aussage über die Einheit.
+ */
+function einheitPasst(text: string, einheit: string): boolean {
+  const erwartet = einheit.trim().toLowerCase().replace(/[µu]/, 'u');
+  if (!erwartet || !EINHEIT_ZEICHEN.test(erwartet)) return true;
+
+  // Nur der Zahlenteil und das unmittelbar Folgende zählen: „21 A pro Leiter"
+  // soll auf „A" passen, „21 V" aber nicht.
+  const treffer = text.match(/-?\d+(?:[.,]\d+)?\s*([A-Za-zΩΩ%µu]*)/);
+  const roh = (treffer?.[1] ?? '').toLowerCase().replace(/[µu]/, 'u');
+  if (roh === '') return true;
+  const ohneVorsatz = roh.length > 1 ? roh.slice(1) : roh;
+  return ohneVorsatz.startsWith(erwartet) || roh.startsWith(erwartet);
+}
+
 export interface Optionsabgleich {
   korrektOptionId: string | null;
   passende: string[];
@@ -154,11 +208,10 @@ export function gleicheOptionenAb(
     .filter((o) => {
       const zahl = zahlAusOption(o.text);
       if (zahl === null) return false;
-      if (einheit && !o.text.includes(einheit.trim())) {
-        // Einheit fehlt in der Option – trotzdem zählen, aber nur bei
-        // eindeutigem Zahlenwert.
-      }
-      return Math.abs(zahl - ergebnis.wert) <= toleranz;
+      // Vorsätze auflösen: „300 mA" ist derselbe Wert wie „0,3 A".
+      const wert = zahl * vorsatzFaktor(o.text);
+      if (Math.abs(wert - ergebnis.wert) > toleranz) return false;
+      return einheit === undefined || einheitPasst(o.text, einheit);
     })
     .map((o) => o.id);
 

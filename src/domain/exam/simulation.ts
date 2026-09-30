@@ -123,9 +123,10 @@ export function berechnePrognose(
   const reifeWerte = {} as Record<ExamArea, number>;
   const deckung = {} as Record<ExamArea, number>;
 
+  const jetzt = new Date();
   for (const bereich of ALLE_BEREICHE) {
-    const r = reife(zustaende, bereich);
-    const abged = abdeckung(zustaende, bereich);
+    const r = reife(zustaende, bereich, jetzt);
+    const abged = abdeckung(zustaende, bereich, jetzt);
     reifeWerte[bereich] = r;
     deckung[bereich] = abged.quote;
   }
@@ -148,7 +149,7 @@ export function berechnePrognose(
     atomId: atom.id,
     titel: atom.titel,
     bereich: atom.bereich,
-    reifegrad: reife(zustaende, atom.bereich),
+    reifegrad: reife(zustaende, atom.bereich, jetzt),
   }));
 
   const ohneSimulation = letzteErgebnisse.length === 0;

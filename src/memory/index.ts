@@ -1,5 +1,6 @@
 import type { TopicStateRecord } from '../domain/types.ts';
 import { ATOME, abdeckung, faelligeThemen, fehlerkorbThemen, holeAtom, reife, schwacheThemen } from '../content/curriculum/index.ts';
+import { effektiverZustand } from '../domain/stateMachine.ts';
 import { TEIL2_BEREICHE } from '../content/syllabus/exam.ts';
 import type { Pruefungsergebnis } from '../domain/exam/simulation.ts';
 
@@ -63,7 +64,7 @@ export function baueDigest(
 ): Digest {
   const reifeWerte: Record<string, number> = {};
   for (const bereich of [...TEIL2_BEREICHE, 'teil1'] as const) {
-    reifeWerte[bereich] = reife(zustaende, bereich);
+    reifeWerte[bereich] = reife(zustaende, bereich, jetzt);
   }
 
   const haeufigsteFehler = fehlerkorbThemen(zustaende, 8).map((atom) => ({
@@ -86,11 +87,17 @@ export function baueDigest(
     erstelltAm: jetzt.toISOString(),
     beantwortetGesamt,
     themenBegonnen: zustaendeDerThemen.filter((z) => z.answered > 0).length,
-    themenGefestigt: zustaendeDerThemen.filter(
-      (z) => z.state === 'gefestigt' || z.state === 'pruefungsreif',
+    themenGefestigt: zustaendeDerThemen.filter((z) => {
+      const s = effektiverZustand(z, jetzt);
+      return s === 'gefestigt' || s === 'pruefungsreif';
+    }).length,
+    // Verfallen heißt: über die Schwelle gefallen – nicht nur „steht so im
+    // gespeicherten Zustand". Der Verfall entsteht durch Zeit, nicht durch
+    // eine Antwort, deshalb wird er hier aus dem Datum abgeleitet.
+    themenVerfallen: zustaendeDerThemen.filter(
+      (z) => effektiverZustand(z, jetzt) === 'ueberfaellig',
     ).length,
-    themenVerfallen: zustaendeDerThemen.filter((z) => z.state === 'ueberfaellig').length,
-    abdeckungQuote: abdeckung(zustaende).quote,
+    abdeckungQuote: abdeckung(zustaende, undefined, jetzt).quote,
     reife: reifeWerte,
     fehlerquote,
     haeufigsteFehler,

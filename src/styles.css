@@ -708,6 +708,12 @@ button.kapitelKopf:hover {
   50% { opacity: 0.35; }
 }
 
+/* Abschaltbar in den Einstellungen – und immer aus, wenn das System
+   Bewegung ablehnt. */
+html[data-animationen='aus'] .schaltung.peBelastet .schaltLeitung {
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .schaltung.peBelastet .schaltLeitung {
     animation: none;

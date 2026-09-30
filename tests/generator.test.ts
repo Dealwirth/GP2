@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { gleicheOptionenAb, rechne, RezeptFehler } from '../src/tasks/resolve.ts';
 import { erzeugeAufgaben, type AiEinstellungen } from '../src/ai/generator.ts';
 import { holeAtom } from '../src/content/curriculum/index.ts';
+import { leereDuplikatspeicher } from '../src/validation/pipeline.ts';
 import type { Task } from '../src/domain/types.ts';
 
 /** Vorschlag, den die KI zurückgeben könnte – ohne korrekte Antwort. */
@@ -113,6 +114,12 @@ describe('Optionsabgleich', () => {
 
 describe('Aufgabengenerierung mit KI', () => {
   const atom = holeAtom('ka-verteilung-01')!;
+
+  // Die Duplikatsperre ist ein modulweiter Speicher. Ohne Zurücksetzen würde
+  // der zweite Test mit identischen Parametern als Duplikat des ersten gelten
+  // und die Aufgabe verschwinden – ein Testfehler, der wie ein Produktfehler
+  // aussieht.
+  beforeEach(() => leereDuplikatspeicher());
 
   it('erzeugt eine Aufgabe, deren Antwort die Engine bestimmt', async () => {
     mitAntwort([rohVorschlag()]);

@@ -130,7 +130,7 @@ Regeln:
 - Sei nüchtern und konkret. Keine Motivation, keine Floskeln.`;
 
 /** Baut den Nutzerteil der Anfrage aus dem Lernstand. */
-export function beratungAnfrage(digest: Digest): string {
+export function beratungAnfrage(digest: Digest, eigenerHinweis = ''): string {
   const bereiche = (['kundenauftrag', 'systementwurf', 'funktionsanalyse', 'wiso'] as ExamArea[])
     .map((b) => `${PRUEFUNGSBEREICHE[b].label}: ${Math.round((digest.reife[b] ?? 0) * 100)} %`)
     .join('\n');
@@ -156,6 +156,7 @@ export function beratungAnfrage(digest: Digest): string {
     `Reife je Prüfungsbereich:\n${bereiche}`,
     `Themen mit den meisten Fehlern:\n${fehler}`,
     `Jetzt fällig: ${digest.faelligeThemen.length} Themen`,
+    eigenerHinweis.trim() ? `Zusätzlicher Hinweis des Lernenden: ${eigenerHinweis.trim()}` : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -169,6 +170,7 @@ export async function holeBeratung(
   einstellungen: AiEinstellungen,
   digest: Digest,
   signal?: AbortSignal,
+  eigenerHinweis = '',
 ): Promise<Beratung> {
   const lokal = lokaleBeratung(digest);
 
@@ -182,7 +184,7 @@ export async function holeBeratung(
   try {
     const text = await frage(
       einstellungen,
-      { system: BERATUNG_SYSTEM, nutzer: beratungAnfrage(digest), temperatur: 0.4 },
+      { system: BERATUNG_SYSTEM, nutzer: beratungAnfrage(digest, eigenerHinweis), temperatur: 0.4 },
       signal,
     );
     const sauber = text.trim();
