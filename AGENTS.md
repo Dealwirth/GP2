@@ -34,3 +34,55 @@ Alle vier laufen in der CI vor dem Deploy.
   aufgelöst („300 mA" = „0,3 A"). Neue Optionen darauf prüfen.
 - Faktenbasis und Aufgabenvorrat sind Inhalte, nicht Code: Änderungen dort
   zuerst mit `facts:check` und `tests/fakten.test.ts` absichern.
+
+## Offene Punkte (Stand: Analyse 2026-09-30)
+
+Nach Dringlichkeit, nicht nach Aufwand sortiert.
+
+### 1. Praktische Geräte- und Anlagenprüfung fehlt (fachliche Lücke)
+`labor/pruefprotokoll.ts` deckt nur die Anlagenprüfung nach VDE 0100-600 ab
+(Durchgang PE/Leiter, Riso, Schleifenwiderstand, RCD-Auslösezeit,
+Spannungsfall). Es fehlt die **Geräteprüfung** – und damit ein ganzer
+Prüfungsteil:
+
+- VDE 0701-0702: Sichtprüfung, Schutzleiterwiderstand, **Isolationswiderstand
+  und Ersatzableitstrom**, Funktion.
+- Die Unterscheidung 0701 (Reparatur/Änderung) gegen 0702
+  (Wiederholungsprüfung) wird nirgends abgefragt.
+- Ableitstrom als Messart fehlt in `messgeraet.ts` (`MESSARTEN` hat mA/A, aber
+  keine Ableitstrommessung am Gerät).
+- `kundenauftrag.ts` hat nur drei Szenarien (Wärmepumpe, Wallbox, PV) – alle
+  sind *Installationen*, keine *Wiederholungsprüfung eines Betriebsmittels*.
+
+### 2. KI-Erzeugung ist intermittierend (Produktkern wackelt)
+Gemessen an Läufen: 1–3 Aufgaben, teils 0. `erzeugeAufgaben` hat **einen**
+Versuch ohne Nachfassen; jeder abgelehnte Vorschlag ist endgültig verloren.
+Bekannte Ablehnungsgründe: „Keine Option passt zum Rechenergebnis",
+„Ungebundene Zahlen", „zweitpruefung: mehrdeutig", „Rate-Limit".
+Ansatzpunkte: verworfene Vorschläge einmal mit dem Ablehnungsgrund
+zurückgeben und nachbessern lassen; Zweitprüfungs-Ausfall (Netzfehler) von
+einem inhaltlichen „verworfen" trennen; Rate-Limit im Client über
+`retry-after` hinaus abwarten statt sofort aufzugeben.
+
+### 3. Der Groq-Schlüssel steckt im öffentlichen Bundle (Sicherheit)
+`EINGEBAUTER_SCHLUESSEL` wird zur Bauzeit aus `VITE_GROQ_KEY` eingesetzt und
+steht damit in `dist/assets/index-*.js` – im Live-Bundle verifiziert. Die
+Begründung im Code („Gratis-Tarif, harmlos") trägt nur, solange niemand das
+Kontingent leerräumt. Saubere Variante: dünne Serverless-Funktion davor, die
+den Schlüssel hält; die App schickt dorthin. Ändert nichts an der Architektur
+– `client.ts` bleibt die einzige Stelle, die den Endpunkt kennt.
+
+### 4. UI ist nicht getestet (Regressionen bleiben unsichtbar)
+`vite.config.ts` setzt `environment: 'node'`. Die 14 Testdateien decken
+Domäne, Engine, Validierung und Inhalte sehr gut ab – aber keine einzige
+Komponente. Genau die Stellen, an denen gerade gearbeitet wurde
+(`Ueben.tsx`, `Pruefung.tsx`, `Tabellen.tsx`, `InhaltsverzeichnisBlatt.tsx`),
+sind ungeprüft. `jsdom` plus ein paar Render-Tests wären der billigste
+Zugewinn an Sicherheit.
+
+### 5. Kein Error Boundary
+`main.tsx` rendert `App` ohne Fehlergrenze. Die README verspricht, dass ein
+fehlerhafter Datensatz nie die Seite leert – das gilt für die Datensammlungen
+(`robust.ts`), nicht für einen Renderfehler. Eine Error Boundary um `App`
+würde das Versprechen auch für die Oberfläche einlösen.
+
