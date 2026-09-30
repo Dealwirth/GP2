@@ -180,6 +180,44 @@ describe('Optionsabgleich', () => {
     expect(a.korrektOptionId).toBeNull();
     expect(a.passende).toHaveLength(2);
   });
+
+  it('bevorzugt die Wertoption gegen eine Aussage über den Wert', () => {
+    // „1 MΩ" nennt den Wert, „Ein niedrigerer Wert als 1 MΩ" erwähnt ihn nur.
+    // Ohne die Unterscheidung gälten beide als richtig und die Aufgabe würde
+    // als mehrdeutig verworfen – obwohl sie eindeutig ist.
+    const a = gleicheOptionenAb(
+      [
+        { id: 'a', text: '1 MΩ' },
+        { id: 'b', text: 'Ein niedrigerer Wert als 1 MΩ' },
+        { id: 'c', text: 'Der Mindestwert hängt von der Prüfspannung ab' },
+      ],
+      { wert: 1 },
+      'MΩ',
+    );
+    expect(a.korrektOptionId).toBe('a');
+    expect(a.passende).toEqual(['a']);
+  });
+
+  it('lehnt zwei Aussagen über denselben Wert als mehrdeutig ab', () => {
+    // Beide Optionen erwähnen 1 MΩ. Welche Aussage stimmt, kann die Engine
+    // ohne Semantik nicht entscheiden – also wird die Aufgabe abgelehnt,
+    // statt zu raten.
+    const a = gleicheOptionenAb(
+      [
+        { id: 'a', text: 'Der Grenzwert liegt über 1 MΩ' },
+        { id: 'b', text: 'Der Grenzwert liegt unter 1 MΩ' },
+      ],
+      { wert: 1 },
+      'MΩ',
+    );
+    expect(a.korrektOptionId).toBeNull();
+    expect(a.passende).toHaveLength(2);
+  });
+
+  it('erkennt „ca. 1 MΩ" weiterhin als Wertoption', () => {
+    const a = gleicheOptionenAb([{ id: 'a', text: 'ca. 1 MΩ' }], { wert: 1 }, 'MΩ');
+    expect(a.korrektOptionId).toBe('a');
+  });
 });
 
 describe('Aufgabengenerierung mit KI', () => {

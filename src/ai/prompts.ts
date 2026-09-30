@@ -30,6 +30,13 @@ HARTE REGELN – nicht verhandelbar:
 7. Genau eine Option muss stimmen; keine Doppeldeutigkeiten.
 8. Wähle für jede Aufgabe das passende Rezept (berechnung) und trage die
    Fakten-IDs dort ein. Ohne ausführbares Rezept wird die Aufgabe verworfen.
+9. NUR WERTFRAGEN. Die richtige Antwort ist immer der reine Wert mit Einheit
+   (z. B. „1 MΩ"). Zwei Optionen nennen klar andere Werte. Keine Option darf
+   eine Aussage über den Wert sein („kleiner als 1 MΩ", „mindestens 1 MΩ") –
+   solche Aussagen kann die Rechen-Engine nicht prüfen, und die Aufgabe fällt
+   durch. Frage nach dem Wert, nicht nach einem Begriff.
+10. Der Rechenweg muss die Antwort eindeutig festlegen. Reicht die Faktenlage
+    nicht für einen Wert, stelle keine Aufgabe zu diesem Aspekt.
 `.trim();
 
 /**

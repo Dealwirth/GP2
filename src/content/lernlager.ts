@@ -66,14 +66,67 @@ const GEPFLEGTE_BESPRECHUNGEN: Record<
   },
   'ka-messen-02': {
     besprechung:
-      'Isolationswiderstand wird mit Gleichspannung gemessen (500 V Prüfspannung, Mindestwert 1 MΩ bei üblichen Stromkreisen). ' +
-      'Vor der Messung: spannungsfrei schalten, empfindliche Verbraucher abklemmen, Entladung abwarten. ' +
-      'Der Grenzwert gilt je Stromkreis, nicht je Anlage.',
+      'Der Durchgang wird bei spannungsfreier Anlage mit dem Durchgangsprüfer oder dem ' +
+      'Niederohm-Messbereich geprüft. Ein Durchgang liegt vor, wenn der Widerstand nahe null ist; ' +
+      'ein hoher oder unendlicher Wert zeigt eine Unterbrechung. ' +
+      'Geprüft werden Leitungen, Klemmen und Schutzkontakte – vor dem Einschalten.',
     typischeFragen: [
-      'Mit welcher Prüfspannung und welchem Grenzwert wird Isolationswiderstand geprüft?',
-      'Warum müssen Elektronikverbraucher vor der Isolationsmessung abgeklemmt werden?',
+      'Wie wird ein Durchgang bei spannungsfreier Anlage geprüft?',
+      'Welcher Messwert zeigt eine unterbrochene Leitung?',
+    ],
+    fakten: ['u0-230'],
+  },
+  'ka-messen-04': {
+    besprechung:
+      'Der Isolationswiderstand wird mit Gleichspannung gemessen – üblich sind 500 V Prüfspannung ' +
+      'und ein Mindestwert von 1 MΩ je Stromkreis. Vor der Messung wird spannungsfrei geschaltet, ' +
+      'empfindliche Elektronik wird abgeklemmt, die Entladung wird abgewartet. ' +
+      'Der Grenzwert gilt je Stromkreis, nicht für die Anlage als Ganzes.',
+    typischeFragen: [
+      'Welcher Mindestwert gilt für den Isolationswiderstand eines Stromkreises?',
+      'Warum werden Elektronikverbraucher vor der Isolationsmessung abgeklemmt?',
     ],
     fakten: ['riso-grenzwert'],
+  },
+  'ka-messen-05': {
+    besprechung:
+      'Der Erdschleifenwiderstand ist der Widerstand der Fehlerschleife über Erde. ' +
+      'Er wird mit dem Erdungsmessgerät über die Erdungsmesszange oder mit Sonden bestimmt. ' +
+      'Der Grenzwert folgt aus der Abschaltbedingung: R_A ≤ U₀ / I_Δn – bei 300 mA sind das 166,7 Ω.',
+    typischeFragen: [
+      'Wie wird der Erdschleifenwiderstand messtechnisch bestimmt?',
+      'Welcher Grenzwert gilt für R_E bei einer Abschaltung mit 300 mA?',
+    ],
+    fakten: ['re-grenzwert', 'u0-50', 'idn-feuchteraum'],
+  },
+  'ka-messen-06': {
+    besprechung:
+      'Die Erdungswiderstände werden nach der Abschaltbedingung beurteilt: R_A ≤ U₀ / I_Δn. ' +
+      'Bei 30 mA Fehlerstrom sind das 1667 Ω, bei 300 mA sind es 167 Ω. ' +
+      'Gemessen wird mit Erdungsmessgerät, Stromzange oder Sondenverfahren.',
+    typischeFragen: [
+      'Wie groß darf R_A bei I_Δn = 30 mA höchstens sein?',
+      'Wie wird ein Erdungswiderstand messtechnisch beurteilt?',
+    ],
+    fakten: ['re-grenzwert', 'u0-50', 'idn-personenschutz', 'idn-feuchteraum'],
+  },
+  'ka-messen-07': {
+    besprechung:
+      'Der Schleifenwiderstand R_L wird zwischen Außenleiter und Schutzleiter gemessen. ' +
+      'Er muss die Abschaltbedingung erfüllen: R_L ≤ U₀ / I_a, wobei I_a die untere magnetische ' +
+      'Auslösegrenze der Kennlinie ist (B = 3×In, C = 5×In, D = 10×In). ' +
+      'Die Messung erfolgt mit Schleifenwiderstandsmessgerät bei eingeschalteter Anlage.',
+    typischeFragen: [
+      'Welche Bedingung muss der Schleifenwiderstand bei Kennlinie B erfüllen?',
+      'Mit welchem Verfahren wird der Schleifenwiderstand gemessen?',
+    ],
+    fakten: [
+      'u0-230',
+      'u0-400',
+      'ls-kennlinie-b-magnetisch-min',
+      'ls-kennlinie-c-magnetisch-min',
+      're-grenzwert',
+    ],
   },
   'ka-pruefung-01': {
     besprechung:
@@ -108,7 +161,13 @@ const GEPFLEGTE_BESPRECHUNGEN: Record<
 /** Kapitel-Präfixe und die Fakten-Tags, die typischerweise dazugehören. */
 const KAPITEL_TAG_HINWEISE: Record<string, string[]> = {
   'ka-verteilung': ['strombelastbarkeit', 'absicherung', 'querschnitt', 'rcd'],
-  'ka-messen': ['wiederholungspruefung', 'isolation'],
+  // „ka-messen" deckt Isolations-, Erdungs- und Schleifenmessung ab. Die
+  // gepflegten Einträge oben setzen die Grenzwerte je Thema genau; für die
+  // übrigen Themen bleibt nur der neutrale Werkstoffbezug. Das frühere Tag
+  // „wiederholungspruefung" zog den Erdungsgrenzwert 166,7 Ω auch in
+  // Isolationsaufgaben – fachlich falsch und der Grund, warum dort keine
+  // Aufgabe durch die Prüfung kam.
+  'ka-messen': ['leitung', 'kupfer'],
   'ka-pruefung': ['abschaltbedingung', 'rcd', 'ausloesestrom'],
   'ka-verlegung': ['leitung', 'kupfer', 'rho'],
   'ka-plaene': ['spannung', 'tn-system', 'drehstrom'],

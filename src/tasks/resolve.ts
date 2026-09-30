@@ -157,9 +157,14 @@ function einheitInfo(roh: string): { vorsatz: number; basis: string } {
 }
 
 /** Zerlegt eine Option in Zahl, Vorsatz und Grundzeichen der Einheit. */
-function zerlegeOption(text: string): { zahl: number | null; vorsatz: number; einheit: string } {
+function zerlegeOption(text: string): {
+  zahl: number | null;
+  vorsatz: number;
+  einheit: string;
+  rest: string;
+} {
   const treffer = text.match(/(-?\d+(?:[.,]\d+)?)\s*([a-zA-ZµΩΩ%]*)/);
-  if (!treffer) return { zahl: null, vorsatz: 1, einheit: '' };
+  if (!treffer) return { zahl: null, vorsatz: 1, einheit: '', rest: text };
 
   const zahl = Number(treffer[1]!.replace(',', '.'));
   const info = einheitInfo(treffer[2] ?? '');
@@ -167,7 +172,27 @@ function zerlegeOption(text: string): { zahl: number | null; vorsatz: number; ei
     zahl: Number.isFinite(zahl) ? zahl : null,
     vorsatz: info.vorsatz,
     einheit: info.basis,
+    rest: text.replace(treffer[0], '').trim(),
   };
+}
+
+/**
+ * Steht in der Option nur der Wert – oder eine Aussage *über* den Wert?
+ *
+ * „1 MΩ" nennt den Wert. „Ein niedrigerer Wert als 1 MΩ" nennt ihn nur und
+ * behauptet etwas anderes. Ohne diese Unterscheidung würde die zweite Option
+ * als zweite richtige Antwort durchgehen und die Aufgabe als mehrdeutig
+ * verworfen – obwohl sie eindeutig ist.
+ */
+function istWertoption(rest: string): boolean {
+  // Übrig bleiben darf nur Beiwerk wie Klammern, Einheitenwörter oder ein
+  // knapper Zusatz („ca.", „etwa"). Alles darüber hinaus ist eine Aussage.
+  const ohneBeiwerk = rest
+    .replace(/[(),.;:]/g, ' ')
+    .replace(/\b(ca|etwa|rund|ungefähr|circa|approximately|about|mindestens|höchstens|maximal|minimal|exakt|genau)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return ohneBeiwerk.length === 0;
 }
 
 /** Zeichen, die eine Einheit tragen – Buchstaben, Ohm- und Prozentzeichen. */
@@ -219,14 +244,21 @@ export function gleicheOptionenAb(
   // die Zahlen vergleichbar.
   const basisErwartet = ergebnis.wert * einheitInfo(einheit ?? '').vorsatz;
   const toleranz = Math.max(Math.abs(basisErwartet) * 0.005, 0.05);
-  const passende = optionen
-    .filter((o) => {
-      const { zahl, vorsatz } = zerlegeOption(o.text);
-      if (zahl === null) return false;
-      if (Math.abs(zahl * vorsatz - basisErwartet) > toleranz) return false;
-      return einheit === undefined || einheitPasst(o.text, einheit);
-    })
-    .map((o) => o.id);
+
+  const trifftWert = (text: string): boolean => {
+    const { zahl, vorsatz } = zerlegeOption(text);
+    if (zahl === null) return false;
+    if (Math.abs(zahl * vorsatz - basisErwartet) > toleranz) return false;
+    return einheit === undefined || einheitPasst(text, einheit);
+  };
+
+  // Gestuft: Eine Option, die den Wert schlicht nennt, ist die Antwort. Eine
+  // Option, die den Wert nur erwähnt („kleiner als 1 MΩ"), ist eine Aussage
+  // über den Wert und nur dann die Antwort, wenn keine Wertoption passt.
+  const wertoptionen = optionen.filter((o) => trifftWert(o.text) && istWertoption(zerlegeOption(o.text).rest));
+  const passende = wertoptionen.length > 0
+    ? wertoptionen.map((o) => o.id)
+    : optionen.filter((o) => trifftWert(o.text)).map((o) => o.id);
 
   return {
     korrektOptionId: passende.length === 1 ? passende[0]! : null,
