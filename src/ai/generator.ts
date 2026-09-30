@@ -7,7 +7,7 @@ import { gleicheOptionenAb, rechne, RezeptFehler } from '../tasks/resolve.ts';
 import { baueTask, parameterHash, type TaskBausatz } from '../validation/pipeline.ts';
 import { FAKTEN, holeFakt } from '../content/facts/index.ts';
 import { holeAtom } from '../content/curriculum/index.ts';
-import { lagerEintrag } from '../content/lernlager.ts';
+import { lagerEintrag, type LagerEintrag } from '../content/lernlager.ts';
 import type { Atom } from '../content/curriculum/types.ts';
 
 export interface GenerierungsErgebnis {
@@ -168,7 +168,8 @@ export async function erzeugeAufgaben(
   atom: Atom,
   anzahl = 3,
   signal?: AbortSignal,
-): Promise<GenerierungsErgebnis> {  const verworfen: { grund: string; vorschlag: string }[] = [];
+): Promise<GenerierungsErgebnis> {
+  const verworfen: { grund: string; vorschlag: string }[] = [];
   if (!einstellungen.aktiv) {
     return { aufgaben: [], verworfen, kiAktiv: false };
   }
@@ -178,66 +179,129 @@ export async function erzeugeAufgaben(
   const lager = lagerEintrag(atom.id);
   const faktenIds = lager && lager.faktenIds.length > 0 ? lager.faktenIds : relevanteFakten(atom);
   const system = systemPromptFuerAufgaben(atom, faktenIds, lager ?? undefined);
-  const nutzer = [
-    `Erstelle ${anzahl} verschiedene Aufgaben zum Thema "${atom.titel}".`,
-    lager ? `Gehe dabei von dieser Besprechung aus: ${lager.typischeFragen[0] ?? atom.lernziel}` : '',
+
+  // Wie oft nachgefasst wird, wenn Vorschläge durchfallen. Der erste Anlauf
+  // ist Pflicht; jeder weitere kostet eine Anfrage. Zwei Anläufe fangen die
+  // häufigen Fälle ab (Option passt nicht, Zweitprüfung beanstandet), ohne
+  // das Kontingent zu belasten.
+  const anlaeufe = Math.max(1, einstellungen.nachfassVersuche ?? 1);
+  const aufgaben: Task[] = [];
+
+  for (let anlauf = 0; anlauf < anlaeufe; anlauf += 1) {
+    const offen = anzahl - aufgaben.length;
+    if (offen <= 0) break;
+
+    const nutzer = baueAufgabenAuftrag(atom, lager ?? undefined, offen, anlauf, verworfen);
+
+    let vorschlaege: Awaited<ReturnType<typeof frageAufgabenVorschlag>>;
+    try {
+      vorschlaege = await frageAufgabenVorschlag(einstellungen, system, nutzer, signal);
+    } catch (fehler) {
+      if (fehler instanceof KiNichtErreichbar) {
+        // Beim ersten Anlauf ist das ein Ausfall; beim Nachfassen behalten
+        // wir, was wir schon haben.
+        return { aufgaben, verworfen, kiAktiv: aufgaben.length > 0 ? true : false };
+      }
+      throw fehler;
+    }
+
+    // Die Vorschläge werden parallel gebaut und zweitgeprüft. Vorher lief
+    // jede Zweitprüfung nacheinander – drei Aufgaben hießen drei Wartezeiten.
+    const gebaut = await Promise.all(
+      vorschlaege.map((proposal) =>
+        baueEinenAufgabe(einstellungen, proposal as unknown as RohVorschlag, atom, verworfen, signal),
+      ),
+    );
+    for (const t of gebaut) if (t) aufgaben.push(t);
+  }
+
+  // Bei paralleler Verarbeitung können zwei Vorschläge dieselbe Aufgabe
+  // ergeben. Die Duplikatsperre greift dort nicht, weil beide gleichzeitig
+  // prüfen. Deshalb hier über die Aufgabennummer entdoppeln.
+  const eindeutig = new Map<string, Task>();
+  for (const t of aufgaben) eindeutig.set(t.taskId, t);
+
+  return { aufgaben: [...eindeutig.values()], verworfen, kiAktiv: true };
+}
+
+/** Baut den Nutzerauftrag für einen Anlauf, inklusive der Ablehnungsgründe. */
+function baueAufgabenAuftrag(
+  atom: Atom,
+  lager: LagerEintrag | undefined,
+  offen: number,
+  anlauf: number,
+  verworfen: { grund: string; vorschlag: string }[],
+): string {
+  const teile = [
+    `Erstelle ${offen} verschiedene Aufgaben zum Thema "${atom.titel}".`,
+    lager
+      ? `Gehe dabei von dieser Besprechung aus: ${lager.typischeFragen[0] ?? atom.lernziel}`
+      : '',
     'Variiere den Blickwinkel zwischen den Aufgaben (Anwendung, Fehlererkennung, Wert ableiten).',
     'Antworte als JSON-Objekt mit dem Feld "aufgaben", das die Aufgaben als Liste enthält.',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  ];
 
-  let vorschlaege: Awaited<ReturnType<typeof frageAufgabenVorschlag>>;
+  // Beim Nachfassen bekommt das Modell die Gründe zu sehen. Ohne diesen
+  // Hinweis erfindet es dieselbe Aufgabe noch einmal und fällt erneut durch.
+  if (anlauf > 0 && verworfen.length > 0) {
+    const gruende = [...new Set(verworfen.map((v) => v.grund))].slice(0, 5);
+    teile.push(
+      'Die folgenden Aufgaben wurden verworfen. Vermeide genau diese Fehler:',
+      ...gruende.map((g) => `- ${g}`),
+    );
+  }
+
+  return teile.filter(Boolean).join(' ');
+}
+
+/**
+ * Baut eine einzelne Aufgabe samt Zweitprüfung.
+ *
+ * Scheitert sie, wird der Grund in `verworfen` festgehalten und `null`
+ * zurückgegeben – ein schlechter Vorschlag darf die ganze Runde nicht
+ * mitreißen.
+ */
+async function baueEinenAufgabe(
+  einstellungen: AiEinstellungen,
+  roh: RohVorschlag,
+  atom: Atom,
+  verworfen: { grund: string; vorschlag: string }[],
+  signal?: AbortSignal,
+): Promise<Task | null> {
+  const versuch = baueTaskAusVorschlag(roh, atom);
+  if ('grund' in versuch) {
+    verworfen.push({ grund: versuch.grund, vorschlag: roh.prompt.slice(0, 120) });
+    return null;
+  }
+
+  // Die Zweitprüfung läuft vor dem Bauen, damit ihr Urteil Teil des
+  // Validierungsprotokolls der Aufgabe wird und die Aufgabe bei einem
+  // Beanstanden gar nicht erst entsteht.
+  const entwurfTask = entwurfAlsTask(versuch.entwurf);
+  if ('grund' in entwurfTask) {
+    verworfen.push({ grund: entwurfTask.grund, vorschlag: roh.prompt.slice(0, 120) });
+    return null;
+  }
+
+  const zweitpruefung = einstellungen.zweitpruefung
+    ? await zweitpruefe(einstellungen, entwurfTask.task, signal)
+    : { bestanden: true, detail: 'Zweitprüfung abgeschaltet.' };
+
   try {
-    vorschlaege = await frageAufgabenVorschlag(einstellungen, system, nutzer, signal);
+    return baueTask({
+      ...versuch.entwurf,
+      validierungsOptionen: {
+        ...versuch.entwurf.validierungsOptionen,
+        zweitpruefung,
+      },
+    });
   } catch (fehler) {
-    if (fehler instanceof KiNichtErreichbar) {
-      return { aufgaben: [], verworfen, kiAktiv: false };
-    }
-    throw fehler;
+    verworfen.push({
+      grund: fehler instanceof Error ? fehler.message : 'Validierung fehlgeschlagen.',
+      vorschlag: roh.prompt.slice(0, 120),
+    });
+    return null;
   }
-
-  const aufgaben: Task[] = [];
-  for (const proposal of vorschlaege) {
-    const roh = proposal as unknown as RohVorschlag;
-    const versuch = baueTaskAusVorschlag(roh, atom);
-    if ('grund' in versuch) {
-      verworfen.push({ grund: versuch.grund, vorschlag: roh.prompt.slice(0, 120) });
-      continue;
-    }
-
-    // Die Zweitprüfung läuft vor dem Bauen, damit ihr Urteil Teil des
-    // Validierungsprotokolls der Aufgabe wird und die Aufgabe bei einem
-    // Beanstanden gar nicht erst entsteht.
-    const entwurfTask = entwurfAlsTask(versuch.entwurf);
-    if ('grund' in entwurfTask) {
-      verworfen.push({ grund: entwurfTask.grund, vorschlag: roh.prompt.slice(0, 120) });
-      continue;
-    }
-
-    const zweitpruefung = einstellungen.zweitpruefung
-      ? await zweitpruefe(einstellungen, entwurfTask.task, signal)
-      : { bestanden: true, detail: 'Zweitprüfung abgeschaltet.' };
-
-    try {
-      aufgaben.push(
-        baueTask({
-          ...versuch.entwurf,
-          validierungsOptionen: {
-            ...versuch.entwurf.validierungsOptionen,
-            zweitpruefung,
-          },
-        }),
-      );
-    } catch (fehler) {
-      verworfen.push({
-        grund: fehler instanceof Error ? fehler.message : 'Validierung fehlgeschlagen.',
-        vorschlag: roh.prompt.slice(0, 120),
-      });
-    }
-  }
-
-  return { aufgaben, verworfen, kiAktiv: true };
 }
 
 /** Zweitprüfung durch ein zweites Modell. */

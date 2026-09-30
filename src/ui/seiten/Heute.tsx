@@ -6,6 +6,7 @@ import { baueSession, startSitzung } from '../../tasks/session.ts';
 import { erzeugeAufgaben } from '../../ai/generator.ts';
 import { aiEinstellungenAus } from '../einstellungen.ts';
 import { merkeAufgaben } from '../../tasks/ablage.ts';
+import { fuelleVorratAuf } from '../../tasks/vorrat.ts';
 import { deuteFehler } from '../KiStatus.tsx';
 import type { Task } from '../../domain/types.ts';
 import { PRUEFUNGSBEREICHE, TEIL2_BEREICHE } from '../../content/syllabus/exam.ts';
@@ -53,8 +54,11 @@ export function Heute(props: { store: Store; wechsle: (s: SeitenName) => void })
             'Die KI konnte keine prüfbare Aufgabe liefern. Einen Moment warten und erneut versuchen – oder die Verbindung über den KI-Knopf oben prüfen.',
           );
           return;
-          }
+        }
         startSitzung(tasks, budget, 'pause');
+        // Im Hintergrund sofort wieder auffüllen, damit die nächste Runde
+        // ohne Wartezeit startet.
+        void fuelleVorratAuf(ai);
         location.hash = '#/ueben';
       } catch (fehler) {
         const { grund } = deuteFehler(fehler);

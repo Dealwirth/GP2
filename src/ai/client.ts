@@ -58,6 +58,13 @@ export interface AiEinstellungen {
   zweitpruefung: boolean;
   /** Modell für die Zweitprüfung – darf dasselbe sein, ist aber schwächer. */
   zweitModell?: string;
+  /**
+   * Wie oft nachgefasst wird, wenn Vorschläge durchfallen.
+   *
+   * 0 oder 1 = ein Anlauf. 2 = ein Nachfassen mit den Ablehnungsgründen.
+   * Jeder weitere Anlauf kostet eine Anfrage beim Anbieter.
+   */
+  nachfassVersuche?: number;
 }
 
 export const STANDARD_EINSTELLUNGEN: AiEinstellungen = {
@@ -66,6 +73,7 @@ export const STANDARD_EINSTELLUNGEN: AiEinstellungen = {
   modell: STANDARD_MODELL,
   aktiv: true,
   zweitpruefung: true,
+  nachfassVersuche: 2,
 };
 
 export interface ChatAntwort {
@@ -183,8 +191,8 @@ export async function frage(
     // Sitzung den Stachel, dass eine von fünf Aufgaben an der Limite scheitert.
     const wartesekunden = Number(antwort.headers.get('retry-after') ?? '0');
     const ausText = /try again in ([\d.]+)s/i.exec(await antwort.clone().text());
-    const warte = Math.min(15_000, Math.ceil(((wartesekunden || Number(ausText?.[1] ?? 0)) + 1) * 1000));
-    if (warte > 0 && warte <= 15_000) {
+    const warte = Math.min(30_000, Math.ceil(((wartesekunden || Number(ausText?.[1] ?? 0)) + 1) * 1000));
+    if (warte > 0 && warte <= 30_000) {
       await new Promise((aufloesen) => setTimeout(aufloesen, warte));
       antwort = await fetch(einstellungen.proxyUrl, {
         method: 'POST',

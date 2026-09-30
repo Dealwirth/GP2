@@ -13,6 +13,7 @@ import { Tabellen } from './ui/seiten/Tabellen.tsx';
 import { tageBis, naechsterTermin } from './domain/termine.ts';
 import { faktBericht } from './content/facts/index.ts';
 import { KiKurzzeile, useKiStatus } from './ui/KiStatus.tsx';
+import { Vorratszeile } from './ui/Vorratszeile.tsx';
 /* Die Sync-Schicht ist entfernt; der Kopf zeigt nur noch den KI-Zustand. */
 import { aiEinstellungenAus } from './ui/einstellungen.ts';
 
@@ -48,6 +49,7 @@ export default function App() {
       <header className="kopf">
         <h1>EGT-Prüfungstrainer</h1>
         <span className="kopfRechts">
+          <Vorratszeile store={store} />
           {/* Der KI-Zustand gehört sichtbar in den Kopf, nicht in die
               Einstellungen: Wenn nichts geht, soll man das sehen, ohne zu
               suchen. Der Klick führt direkt zur Prüfstelle. */}

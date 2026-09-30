@@ -1554,6 +1554,59 @@ button.kiKurz {
   color: var(--fg);
 }
 
+/* Aufgaben-Vorrat im Kopf --------------------------------------------------- */
+
+/*
+ * Zeigt, wie viele fertige Aufgaben bereitliegen. Der Punkt trägt den Zustand:
+ * grün heißt genug, pulsierend heißt es wird nachgefüllt, rot heißt es klemmt.
+ * Damit ist der Vorrat ablesbar, ohne die Zeile zu lesen.
+ */
+button.vorrat {
+  width: auto;
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--linie);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.vorratPunkt {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex: none;
+  background: var(--linie);
+}
+
+.vorratVoll .vorratPunkt {
+  background: var(--richtig, #2e7d32);
+}
+
+.vorratLaeuft .vorratPunkt {
+  background: var(--linie);
+  animation: vorratPuls 1.2s ease-in-out infinite;
+}
+
+.vorratFehler .vorratPunkt {
+  background: var(--falsch, #c62828);
+}
+
+@keyframes vorratPuls {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vorratLaeuft .vorratPunkt { animation: none; }
+}
+
 .kiHinweis .prTitel {
   color: var(--falsch);
 }

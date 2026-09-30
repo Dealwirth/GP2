@@ -1,5 +1,6 @@
 import type { Task } from '../domain/types.ts';
 import { lies, schreib } from '../ui/persistenz.ts';
+import { setzeBekannteHashes } from '../validation/pipeline.ts';
 
 /**
  * Lokale Aufgabenablage.
@@ -35,7 +36,17 @@ function lade(): Ablage {
   if (!roh || typeof roh !== 'object' || !roh.aufgaben || !Array.isArray(roh.reihenfolge)) {
     return leereAblage();
   }
+  // Was hier liegt, ist bereits vergeben – auch wenn es aus einer früheren
+  // Sitzung stammt. Ohne diesen Abgleich kennt die Duplikatsperre nach einem
+  // Neuladen nur, was seit dem Laden erzeugt wurde, und stellt dieselbe
+  // Aufgabe erneut.
+  merkeHashAusAblage(roh);
   return roh;
+}
+
+function merkeHashAusAblage(ablage: Ablage): void {
+  const hashes = Object.keys(ablage.aufgaben).map((id) => id.replace(/^t_/, ''));
+  if (hashes.length > 0) setzeBekannteHashes(hashes);
 }
 
 /** Legt Aufgaben ab und wirft die ältesten heraus, wenn es zu viele werden. */

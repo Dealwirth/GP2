@@ -10,6 +10,7 @@ import {
 import { useGespeichert } from '../persistenz.ts';
 import { KiWerkstatt } from './KiWerkstatt.tsx';
 import { InhaltsverzeichnisBlatt } from '../InhaltsverzeichnisBlatt.tsx';
+import { TabellenBlatt } from '../TabellenBlatt.tsx';
 import { storage } from '../../storage/index.ts';
 import { faktBericht } from '../../content/facts/index.ts';
 import { reifegrad } from '../../domain/stateMachine.ts';
@@ -52,6 +53,7 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
   const [laufend, setLaufend] = useState(() => holeSitzung());
   const [stand, setStand] = useGespeichert<Rundenstand>(RUNDE_SCHLUESSEL, startRundenstand());
   const [zeigeVerzeichnis, setZeigeVerzeichnis] = useState(false);
+  const [zeigeTabellen, setZeigeTabellen] = useState(false);
 
   // Gehört der gemerkte Rundenspeicher noch zu dieser Sitzung? Nach dem
   // Beenden blieb früher das Ergebnis stehen – eine neu gestartete Sitzung
@@ -228,6 +230,9 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
         <button className="still" onClick={() => setZeigeVerzeichnis(true)} type="button">
           Formeln
         </button>
+        <button className="still" onClick={() => setZeigeTabellen(true)} type="button">
+          Tabellen
+        </button>
         {restzeit !== null && (
           <span className={`klein ${restzeit < 60 ? 'frist dringend' : ''}`}>
             {Math.floor(restzeit / 60)}:{String(restzeit % 60).padStart(2, '0')}
@@ -239,6 +244,7 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
         offen={zeigeVerzeichnis}
         onSchliessen={() => setZeigeVerzeichnis(false)}
       />
+      <TabellenBlatt offen={zeigeTabellen} onSchliessen={() => setZeigeTabellen(false)} />
 
       {aktuelle && (
         <>

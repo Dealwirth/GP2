@@ -8,10 +8,32 @@ import type {
 import { FAKTEN_VERSION, gueltigAm, holeFakt } from '../content/facts/index.ts';
 import { ENGINE_VERSION } from '../engine/calc/index.ts';
 
-export const VALIDATOR_VERSION = '1.0.0';
+export const VALIDATOR_VERSION = '1.0.1';
 
-/** Aktuell in der Faktenbasis registrierte Parametermengen (Duplikatsperre). */
+/**
+ * Parameterkombinationen, die in dieser Sitzung schon eine Aufgabe ergeben
+ * haben (Duplikatsperre).
+ *
+ * Wichtig: Hier landet ein Hash erst, wenn der Task wirklich entstanden ist.
+ * Vorher geschah das schon beim Bestehen der Prüfliste – ein Vorschlag, der
+ * danach noch an der Zweitprüfung scheiterte, blockierte damit seine eigene
+ * Parameterkombination für den Rest der Sitzung. Genau das ließ die
+ * Aufgabenerzeugung „beim ersten Mal klappen und danach nicht mehr".
+ *
+ * Die Sperre ist nur die halbe Wahrheit: Was in früheren Sitzungen entstanden
+ * ist, liegt in der Aufgabenablage. `pruefeDuplikat` fragt deshalb beide.
+ */
 const GESEHENE_PARAM_HASHES = new Set<string>();
+
+/**
+ * Setzt die Duplikatsperre auf den Stand der Ablage.
+ *
+ * Ohne das kennt die Sperre nur, was seit dem Laden der Seite erzeugt wurde.
+ * Nach einem Neuladen würde dieselbe Aufgabe erneut gestellt.
+ */
+export function setzeBekannteHashes(hashes: string[]): void {
+  for (const hash of hashes) GESEHENE_PARAM_HASHES.add(hash);
+}
 
 export interface ValidierungsOptionen {
   region?: string | null;
@@ -273,8 +295,12 @@ export function validiere(
   };
 
   const bestanden = checks.every((c) => c.passed);
-  if (bestanden && pruefeDuplikate) GESEHENE_PARAM_HASHES.add(paramsHash);
   return { record, bestanden };
+}
+
+/** Trägt eine Parameterkombination in die Duplikatsperre ein. */
+export function merkeHash(paramsHash: string): void {
+  GESEHENE_PARAM_HASHES.add(paramsHash);
 }
 
 /** Leert den Duplikatspeicher. */
@@ -325,6 +351,11 @@ export function baueTask(bausatz: TaskBausatz): Task {
       .join(' | ');
     throw new Error(`Aufgabe wurde verworfen – Validierung fehlgeschlagen. ${fehler}`);
   }
+
+  // Erst jetzt ist die Parameterkombination wirklich vergeben. Wer den Hash
+  // schon beim Bestehen der Prüfliste einträgt, sperrt Vorschläge, die es nie
+  // zu einer Aufgabe bringen – und legt damit die nächste Runde lahm.
+  if (bausatz.validierungsOptionen?.duplikatPruefen) merkeHash(bausatz.paramsHash);
 
   return {
     taskId: `t_${bausatz.paramsHash}`,

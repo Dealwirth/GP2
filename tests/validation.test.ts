@@ -3,6 +3,7 @@ import type { TaskProposal } from '../src/domain/types.ts';
 import {
   baueTask,
   leereDuplikatspeicher,
+  merkeHash,
   parameterHash,
   pruefeFaktenbindung,
   validiere,
@@ -92,10 +93,14 @@ describe('Validierung', () => {
   it('weist doppelt erzeugte Parameter ab', () => {
     const hash = parameterHash(['doppelt']);
     expect(validiere(guterVorschlag, hash).bestanden).toBe(true);
+    // Die Sperre wird beim gelungenen Bau gesetzt, nicht in `validiere` –
+    // ein Vorschlag, der es nie zur Aufgabe bringt, darf nichts blockieren.
+    merkeHash(hash);
     const zweite = validiere(guterVorschlag, hash);
     expect(zweite.bestanden).toBe(false);
     const dup = zweite.record.checks.find((c) => c.id === 'duplikat');
     expect(dup?.passed).toBe(false);
+    leereDuplikatspeicher();
   });
 
   it('erlaubt keine Aufgabe ohne gültigen Faktenbezug', () => {
@@ -213,7 +218,8 @@ describe('Statische Grundaufgaben', () => {
     const vorschlag = guterVorschlag;
     const hash = parameterHash(['ki-test']);
     expect(validiere(vorschlag, hash, { duplikatPruefen: true }).bestanden).toBe(true);
-    // Zweiter Versuch mit derselben Parameterkombination: jetzt abgelehnt.
+    // Der Bau vergibt die Parameterkombination.
+    merkeHash(hash);
     const zweiter = validiere(vorschlag, hash, { duplikatPruefen: true });
     expect(zweiter.bestanden).toBe(false);
     expect(zweiter.record.checks.find((c) => c.id === 'duplikat')?.passed).toBe(false);

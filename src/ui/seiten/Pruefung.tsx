@@ -10,6 +10,7 @@ import type { Store } from '../store.ts';
 import type { SeitenName } from '../router.ts';
 import { useGespeichert } from '../persistenz.ts';
 import { InhaltsverzeichnisBlatt } from '../InhaltsverzeichnisBlatt.tsx';
+import { TabellenBlatt } from '../TabellenBlatt.tsx';
 
 /** Schlüssel des laufenden Durchgangs im dauerhaften Speicher. */
 const LAUF_SCHLUESSEL = 'pruefung-lauf';
@@ -222,6 +223,7 @@ function PruefungLaufend(props: {
    */
   const [restzeit, setRestzeit] = useState(() => restsekunden(pruefung, lauf.beginn));
   const [zeigeVerzeichnis, setZeigeVerzeichnis] = useState(false);
+  const [zeigeTabellen, setZeigeTabellen] = useState(false);
 
   // Funktionale Aktualisierung, nicht `{...lauf, ...}`.
   //
@@ -358,6 +360,9 @@ function PruefungLaufend(props: {
         <button className="still" onClick={() => setZeigeVerzeichnis(true)} type="button">
           Formeln
         </button>
+        <button className="still" onClick={() => setZeigeTabellen(true)} type="button">
+          Tabellen
+        </button>
         <span className={`zahlKlein ${restzeit < 300 ? 'rot' : ''}`}>
           {Math.floor(restzeit / 60)}:{String(restzeit % 60).padStart(2, '0')}
         </span>
@@ -367,6 +372,7 @@ function PruefungLaufend(props: {
         offen={zeigeVerzeichnis}
         onSchliessen={() => setZeigeVerzeichnis(false)}
       />
+      <TabellenBlatt offen={zeigeTabellen} onSchliessen={() => setZeigeTabellen(false)} />
 
       <div className="balken fortschrittsbalken">
         <div

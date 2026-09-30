@@ -7,6 +7,7 @@ import {
   reifegrad,
 } from '../domain/stateMachine.ts';
 import { holeAufgaben, holeAlleAufgaben } from './ablage.ts';
+import { holeVorrat, markiereBenutzt } from './vorrat.ts';
 import { ATOME, atomeVonBereich } from '../content/curriculum/index.ts';
 import type { ExamArea } from '../domain/types.ts';
 import { storage } from '../storage/index.ts';
@@ -153,51 +154,68 @@ export async function waehleThemen(anzahl: number, bereichFilter?: ExamArea): Pr
 }
 
 /**
- * Baut eine Session für ein Zeitbudget – ausschließlich mit KI-Aufgaben.
+ * Baut eine Session für ein Zeitbudget.
  *
- * Ablauf:
- *   1. Themen durchmischt wählen (fällige zuerst, dann breiter Mix)
- *   2. je Thema Aufgaben von der KI anfordern und prüfen lassen
- *   3. Erfolglose Themen überspringen, bis das Budget gefüllt ist
+ * Zuerst wird der Vorrat geleert: fertige, geprüfte Aufgaben aus dem
+ * Hintergrundlager. Erst wenn er nicht reicht, wird nachgefordert. Das ist
+ * der Unterschied zwischen „Sofort loslegen" und „erst warten, bis das Modell
+ * geantwortet hat".
  *
- * Vorher kam hier der statische Vorrat; der war auf 81 Aufgaben begrenzt und
- * wiederholte sich. Jetzt stellt die KI jede Aufgabe, gespeist aus dem
- * Lernlager – und die Duplikatsperre verhindert Aufgabenerschöpfung.
+ * Das Budget wird zu rund 90 % gefüllt. Der Timer ordnet die Sitzung nur ein
+ * – er ist kein hartes Limit. Wer zügig ist, hat Luft; wer grübelt, wird
+ * nicht mitten in einer Aufgabe abgeschnitten.
  */
 export async function baueSession(
   budget: Zeitbudget,
   erzeugeFuerThema: (topicId: string, anzahl: number) => Promise<Task[]>,
   bereichFilter?: ExamArea,
 ): Promise<Task[]> {
-  const themenAnzahl = Math.max(3, Math.min(6, Math.round(budget.minuten / 2.5)));
-  const themen = await waehleThemen(themenAnzahl, bereichFilter);
-
+  const zielSekunden = budget.minuten * 60 * 0.9;
   const auswahl: Task[] = [];
   const bekannt = new Set(holeAlleAufgaben().map((t) => t.proposal.prompt));
   const schonInSitzung = new Set<string>();
-  let budgetSekunden = budget.minuten * 60;
+  let budgetSekunden = zielSekunden;
 
-  for (const topicId of themen) {
+  // 1. Aus dem Vorrat nehmen – in einem Zug, ohne Netz.
+  const vorrat = bereichFilter
+    ? holeVorrat().filter((t) => t.proposal.examArea === bereichFilter)
+    : holeVorrat();
+  for (const t of vorrat) {
     if (budgetSekunden <= 0) break;
-    const anzahl = budget.minuten <= 10 ? 1 : 2;
-    let neu: Task[] = [];
-    try {
-      neu = await erzeugeFuerThema(topicId, anzahl);
-    } catch {
-      neu = []; // Netz weg oder Kontingent leer: Thema überspringen.
-    }
+    if (schonInSitzung.has(t.proposal.prompt)) continue;
+    auswahl.push(t);
+    schonInSitzung.add(t.proposal.prompt);
+    budgetSekunden -= t.proposal.estimatedSeconds;
+  }
 
-    for (const t of neu) {
+  // 2. Reicht der Vorrat nicht, gezielt nachfordern.
+  if (budgetSekunden > 0) {
+    const themenAnzahl = Math.max(3, Math.min(6, Math.round(budget.minuten / 2.5)));
+    const themen = await waehleThemen(themenAnzahl, bereichFilter);
+
+    for (const topicId of themen) {
       if (budgetSekunden <= 0) break;
-      if (schonInSitzung.has(t.proposal.prompt)) continue;
-      if (bekannt.has(t.proposal.prompt)) continue; // Keine Wiederholung aus früheren Sitzungen.
-      if (t.proposal.estimatedSeconds > budgetSekunden) continue;
-      auswahl.push(t);
-      schonInSitzung.add(t.proposal.prompt);
-      budgetSekunden -= t.proposal.estimatedSeconds;
+      const anzahl = budget.minuten <= 10 ? 1 : 2;
+      let neu: Task[] = [];
+      try {
+        neu = await erzeugeFuerThema(topicId, anzahl);
+      } catch {
+        neu = []; // Netz weg oder Kontingent leer: Thema überspringen.
+      }
+
+      for (const t of neu) {
+        if (budgetSekunden <= 0) break;
+        if (schonInSitzung.has(t.proposal.prompt)) continue;
+        if (bekannt.has(t.proposal.prompt)) continue; // Keine Wiederholung aus früheren Sitzungen.
+        if (t.proposal.estimatedSeconds > budgetSekunden) continue;
+        auswahl.push(t);
+        schonInSitzung.add(t.proposal.prompt);
+        budgetSekunden -= t.proposal.estimatedSeconds;
+      }
     }
   }
 
+  markiereBenutzt(auswahl.map((t) => t.taskId));
   return auswahl;
 }
 
