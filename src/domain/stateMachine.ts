@@ -11,7 +11,6 @@ export function leererZustand(topicId: string): TopicStateRecord {
     lastSeen: null,
     streakStartedAt: null,
     nextDue: null,
-    labSolved: false,
     fenster: [],
   };
 }

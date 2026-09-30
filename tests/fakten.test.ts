@@ -30,6 +30,26 @@ describe('Faktenbasis', () => {
     }
   });
 
+  it('belegt jeden als geprüft ausgewiesenen Fakt mit einer nachgewiesenen Quelle', () => {
+    // Ein Fakt darf sich nur dann "geprüft" nennen, wenn die Quelle selbst am
+    // Original abgeglichen ist. Sonst behauptet die App eine Sicherheit, die
+    // sie nicht belegen kann.
+    for (const f of FAKTEN) {
+      if (f.verification !== 'geprueft') continue;
+      expect(
+        QUELLEN[f.quelleId]?.geprueft,
+        `Fakt ${f.id} gilt als geprüft, Quelle ${f.quelleId} ist aber nicht nachgewiesen`,
+      ).toBe(true);
+    }
+  });
+
+  it('gibt zu jeder amtlichen Quelle einen Bezugsweg an', () => {
+    // Gesetze, DGUV und BAuA sind frei zugänglich – dort muss ein Link stehen.
+    for (const id of ['elekausbv', 'betrsichv', 'dguv3', 'dguv203072', 'trbs1201']) {
+      expect(QUELLEN[id]?.url, `Quelle ${id} hat keinen Bezugsweg`).toBeTruthy();
+    }
+  });
+
   it('trägt bei jeder ID die aktive Version', () => {
     for (const f of FAKTEN) {
       expect(f.version).toBe(FAKTEN_VERSION);
@@ -195,7 +215,7 @@ describe('Lernzustand', () => {
 
   it('stuft einen Prüfungsreifen nach einem Fehler auf "gefestigt" ab', () => {
     let z = leererZustand('t1');
-    z = { ...z, state: 'pruefungsreif', labSolved: true };
+    z = { ...z, state: 'pruefungsreif' };
     z = wendeVersuchAn(z, { type: 'falsch', sicherheit: 'sicher' }, start);
     expect(z.state).toBe('gefestigt');
   });

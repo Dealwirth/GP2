@@ -6,7 +6,7 @@ import {
   bewerteReihenfolge,
   szenarioRechnung,
   FUENF_SICHERHEITSREGELN,
-} from '../src/labor/kundenauftrag.ts';
+} from '../src/content/kundenauftrag.ts';
 import { rechne } from '../src/tasks/resolve.ts';
 import { strombelastbarkeit } from '../src/engine/calc/index.ts';
 import { holeFakt } from '../src/content/facts/index.ts';

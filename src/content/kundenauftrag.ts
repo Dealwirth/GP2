@@ -5,7 +5,7 @@ import {
   strombelastbarkeit,
   spannungsfall,
 } from '../engine/calc/index.ts';
-import { holeFakt } from '../content/facts/index.ts';
+import { holeFakt } from './facts/index.ts';
 
 /**
  * Der geführte Kundenauftrag.

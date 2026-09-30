@@ -28,6 +28,28 @@ export interface AufgeloesteRechnung {
   gesichert: boolean;
 }
 
+/**
+ * Eingangsgrößen eines Rezepts als Textwerte.
+ *
+ * Das sind die Zahlen, die die Aufgabe als Szenario setzt (Last, Länge, Strom,
+ * Querschnitt). Sie fließen in die Rechnung ein und sind damit belegt – die
+ * Faktenbindung darf sie im Aufgabentext zulassen. Reine Faktenwerte gehören
+ * NICHT hierher: sie sind bereits über `factRefs` gebunden.
+ */
+export function rezeptWerte(rezept: Rezept): string[] {
+  const werte: string[] = [];
+  const nimm = (n: number | undefined): void => {
+    if (n !== undefined && Number.isFinite(n)) werte.push(String(n));
+  };
+  nimm(rezept.querschnittMm2);
+  nimm(rezept.leistungW);
+  nimm(rezept.cosPhi);
+  nimm(rezept.laengeM);
+  nimm(rezept.stromA);
+  nimm(rezept.inA);
+  return werte;
+}
+
 export class RezeptFehler extends Error {
   constructor(grund: string) {
     super(`Rezept nicht ausführbar: ${grund}`);

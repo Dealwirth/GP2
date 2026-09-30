@@ -8,8 +8,8 @@ import {
   szenarioRechnung,
   quelleFuerSchritt,
   type AuftragsSzenario,
-} from '../../labor/kundenauftrag.ts';
-import { formatiereZahl } from '../../labor/pruefprotokoll.ts';
+} from '../../content/kundenauftrag.ts';
+import { formatiereZahl } from '../../content/zahlen.ts';
 import type { Store } from '../store.ts';
 
 /**
@@ -60,7 +60,7 @@ function GespraechsKarte(props: {
   );
 }
 
-export function Praxisteil(_props: { store: Store }) {
+export function Kundenauftrag(_props: { store: Store }) {
   const [phase, setPhase] = useGespeichert<Phase>('praxis-phase', 'wahl');
   const [szenarioId, setSzenarioId] = useGespeichert<string>('praxis-szenario', '');
   const [planung, setPlanung] = useGespeichert<Record<string, number>>('praxis-planung', {});

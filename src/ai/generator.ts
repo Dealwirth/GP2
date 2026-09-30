@@ -3,7 +3,7 @@ import type { Rezept, RezeptArt } from './schemas.ts';
 import { ZWEITPRUEFUNG_SCHEMA, VORSCHLAG_SCHEMA } from './schemas.ts';
 import { KiNichtErreichbar, frage, frageAufgabenVorschlag, type AiEinstellungen } from './client.ts';
 import { ZWEITPRUEFUNG_PROMPT, systemPromptFuerAufgaben } from './prompts.ts';
-import { gleicheOptionenAb, rechne, RezeptFehler } from '../tasks/resolve.ts';
+import { gleicheOptionenAb, rechne, rezeptWerte, RezeptFehler } from '../tasks/resolve.ts';
 import { baueTask, parameterHash, type TaskBausatz } from '../validation/pipeline.ts';
 import { FAKTEN, holeFakt } from '../content/facts/index.ts';
 import { holeAtom } from '../content/curriculum/index.ts';
@@ -75,7 +75,10 @@ function entwurfAlsTask(
 ): { task: Task } | { grund: string } {
   try {
     return {
-      task: baueTask({ ...entwurf, validierungsOptionen: { duplikatPruefen: false } }),
+      task: baueTask({
+        ...entwurf,
+        validierungsOptionen: { ...entwurf.validierungsOptionen, duplikatPruefen: false },
+      }),
     };
   } catch (fehler) {
     return { grund: fehler instanceof Error ? fehler.message : 'Validierung fehlgeschlagen.' };
@@ -85,7 +88,7 @@ function entwurfAlsTask(
 function baueTaskAusVorschlag(
   vorschlag: RohVorschlag,
   atom: Atom,
-): { entwurf: Entwurf } | { grund: string } {
+): { entwurf: Entwurf; entwurfTask: Task } | { grund: string } {
   if (vorschlag.format !== 'mc') {
     return { grund: 'Nur Multiple Choice ist maschinell prüfbar.' };
   }
@@ -118,39 +121,48 @@ function baueTaskAusVorschlag(
         : (o.begruendungWennFalsch ?? 'Dieser Wert passt nicht zum Rechenergebnis.');
   }
 
-  return {
-    entwurf: {
-      // Nur KI-Aufgaben unterliegen der Duplikatsperre: sie soll verhindern,
-      // dass das Modell dieselbe Aufgabe noch einmal erfindet.
-      validierungsOptionen: { duplikatPruefen: true },
-      proposal: {
-        proposalId: `ki_${atom.id}_${abgleich.erkannterWert}`,
-        format: 'mc',
-        stufe: vorschlag.stufe as 1 | 2 | 3 | 4,
-        estimatedSeconds: vorschlag.stufe === 1 ? 25 : vorschlag.stufe === 2 ? 60 : 180,
-        examArea: vorschlag.examArea as Task['proposal']['examArea'],
-        topicIds: vorschlag.topicIds.length > 0 ? vorschlag.topicIds : [atom.id],
-        prompt: vorschlag.prompt,
-        options: optionen,
-        factRefs: vorschlag.factRefs,
-        learningGoal: vorschlag.learningGoal,
-        hint: vorschlag.hinweis,
-        origin: 'ki',
-      },
-      paramsHash: parameterHash([
-        atom.id,
-        vorschlag.berechnung.art,
-        JSON.stringify(vorschlag.berechnung),
-        vorschlag.prompt,
-      ]),
-      correctOptionId: abgleich.korrektOptionId,
-      optionRationale: rationale,
-      solutionSteps: ergebnis.steps,
-      explanation:
-        ergebnis.steps.at(-1)?.result ??
-        `${abgleich.erkannterWert} ${ergebnis.einheit}`,
+  const entwurf: Entwurf = {
+    // Nur KI-Aufgaben unterliegen der Duplikatsperre: sie soll verhindern,
+    // dass das Modell dieselbe Aufgabe noch einmal erfindet.
+    validierungsOptionen: {
+      duplikatPruefen: true,
+      rezeptWerte: rezeptWerte(vorschlag.berechnung),
     },
+    proposal: {
+      proposalId: `ki_${atom.id}_${abgleich.erkannterWert}`,
+      format: 'mc',
+      stufe: vorschlag.stufe as 1 | 2 | 3 | 4,
+      estimatedSeconds: vorschlag.stufe === 1 ? 25 : vorschlag.stufe === 2 ? 60 : 180,
+      examArea: vorschlag.examArea as Task['proposal']['examArea'],
+      topicIds: vorschlag.topicIds.length > 0 ? vorschlag.topicIds : [atom.id],
+      prompt: vorschlag.prompt,
+      options: optionen,
+      factRefs: vorschlag.factRefs,
+      learningGoal: vorschlag.learningGoal,
+      hint: vorschlag.hinweis,
+      origin: 'ki',
+    },
+    paramsHash: parameterHash([
+      atom.id,
+      vorschlag.berechnung.art,
+      JSON.stringify(vorschlag.berechnung),
+      vorschlag.prompt,
+    ]),
+    correctOptionId: abgleich.korrektOptionId,
+    optionRationale: rationale,
+    solutionSteps: ergebnis.steps,
+    explanation:
+      ergebnis.steps.at(-1)?.result ??
+      `${abgleich.erkannterWert} ${ergebnis.einheit}`,
   };
+
+  // Der Entwurf wird sofort validiert. Fällt er durch (etwa eine ungebundene
+  // Zahl), wird er gar nicht erst zweitgeprüft – das spart die halbe Wartezeit
+  // und schont das Kontingent.
+  const vorpruefung = entwurfAlsTask(entwurf);
+  if ('grund' in vorpruefung) return { grund: vorpruefung.grund };
+
+  return { entwurf, entwurfTask: vorpruefung.task };
 }
 
 /**
@@ -205,19 +217,26 @@ export async function erzeugeAufgaben(
       throw fehler;
     }
 
-    // Die Vorschläge werden parallel gebaut und zweitgeprüft. Vorher lief
-    // jede Zweitprüfung nacheinander – drei Aufgaben hießen drei Wartezeiten.
-    const gebaut = await Promise.all(
-      vorschlaege.map((proposal) =>
-        baueEinenAufgabe(einstellungen, proposal as unknown as RohVorschlag, atom, verworfen, signal),
-      ),
-    );
-    for (const t of gebaut) if (t) aufgaben.push(t);
+    // Die Vorschläge werden nacheinander gebaut und zweitgeprüft. Parallel
+    // wäre schneller, aber die Zweitprüfung stößt je Aufgabe eine zweite
+    // Anfrage an – bei zwei Aufgaben gleichzeitig reißt das im Gratis-Tarif
+    // das Minutenkontingent, und dann fällt eine an sich gute Aufgabe nur
+    // wegen des Rate-Limits durch. Nacheinander bleibt die Runde heil.
+    for (const proposal of vorschlaege) {
+      const offenJetzt = anzahl - aufgaben.length;
+      if (offenJetzt <= 0) break;
+      const t = await baueEinenAufgabe(
+        einstellungen,
+        proposal as unknown as RohVorschlag,
+        atom,
+        verworfen,
+        signal,
+      );
+      if (t) aufgaben.push(t);
+    }
   }
 
-  // Bei paralleler Verarbeitung können zwei Vorschläge dieselbe Aufgabe
-  // ergeben. Die Duplikatsperre greift dort nicht, weil beide gleichzeitig
-  // prüfen. Deshalb hier über die Aufgabennummer entdoppeln.
+  // Sicherheitsnetz gegen doppelte Vorschläge in derselben Runde.
   const eindeutig = new Map<string, Task>();
   for (const t of aufgaben) eindeutig.set(t.taskId, t);
 
@@ -274,17 +293,12 @@ async function baueEinenAufgabe(
     return null;
   }
 
-  // Die Zweitprüfung läuft vor dem Bauen, damit ihr Urteil Teil des
-  // Validierungsprotokolls der Aufgabe wird und die Aufgabe bei einem
-  // Beanstanden gar nicht erst entsteht.
-  const entwurfTask = entwurfAlsTask(versuch.entwurf);
-  if ('grund' in entwurfTask) {
-    verworfen.push({ grund: entwurfTask.grund, vorschlag: roh.prompt.slice(0, 120) });
-    return null;
-  }
-
+  // Der Entwurf hat die Faktenbindung bereits bestanden. Erst jetzt lohnt die
+  // Zweitprüfung: sie kostet eine zweite Anfrage und soll nur Aufgaben
+  // treffen, die ohne sie durchgehen würden. Ihr Urteil wird Teil des
+  // Validierungsprotokolls, damit es in der Aufgabe dokumentiert ist.
   const zweitpruefung = einstellungen.zweitpruefung
-    ? await zweitpruefe(einstellungen, entwurfTask.task, signal)
+    ? await zweitpruefe(einstellungen, versuch.entwurfTask, signal)
     : { bestanden: true, detail: 'Zweitprüfung abgeschaltet.' };
 
   try {

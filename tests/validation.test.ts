@@ -80,6 +80,45 @@ describe('Faktenbindung', () => {
     );
     expect(berechnet.passed).toBe(true);
   });
+
+  it('bindet Szenariozahlen, die als Rezept-Eingang in die Rechnung flossen', () => {
+    // 2500 W ist kein Normwert, sondern die Last der Aufgabe. Die Engine hat
+    // damit gerechnet, also darf sie im Aufgabentext stehen.
+    const mitRezeptwert = pruefeFaktenbindung(
+      {
+        ...guterVorschlag,
+        prompt: 'Welcher Strom fließt bei 2500 W an 230 V?',
+        options: [
+          { id: 'a', text: '10,9 A' },
+          { id: 'b', text: '5,4 A' },
+        ],
+      },
+      [],
+      undefined,
+      [],
+      ['2500', '230'],
+    );
+    expect(mitRezeptwert.passed).toBe(true);
+  });
+
+  it('lässt eine erfundene Normzahl auch dann fallen, wenn ein Rezeptwert daneben steht', () => {
+    const erfunden = pruefeFaktenbindung(
+      {
+        ...guterVorschlag,
+        prompt: 'Welcher Strom fließt bei 2500 W an 230 V bei einem Grenzwert von 42 mA?',
+        options: [
+          { id: 'a', text: '10,9 A' },
+          { id: 'b', text: '5,4 A' },
+        ],
+      },
+      [],
+      undefined,
+      [],
+      ['2500', '230'],
+    );
+    expect(erfunden.passed).toBe(false);
+    expect(erfunden.detail).toContain('42');
+  });
 });
 
 describe('Validierung', () => {

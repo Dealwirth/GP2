@@ -254,8 +254,8 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
           {aktuelle.proposal.format === 'simulation' ? (
             <div className="karte">
               <p className="klein">
-                Diese Aufgabe gehört in den Kundenauftrag. Sie wird im Labor
-                unterrichtet, nicht hier in der Pause.
+                Diese Aufgabe gehört in den Kundenauftrag. Sie wird im geführten
+                Kundenauftrag behandelt, nicht hier in der Pause.
               </p>
             </div>
           ) : (

@@ -5,7 +5,7 @@ import { Heute } from './ui/seiten/Heute.tsx';
 import { Lernen } from './ui/seiten/Lernen.tsx';
 import { Ueben } from './ui/seiten/Ueben.tsx';
 import { Pruefung } from './ui/seiten/Pruefung.tsx';
-import { Labor } from './ui/seiten/Labor.tsx';
+import { Kundenauftrag } from './ui/seiten/Kundenauftrag.tsx';
 import { Fortschritt } from './ui/seiten/Fortschritt.tsx';
 import { Bericht } from './ui/seiten/Bericht.tsx';
 import { Einstellungen } from './ui/seiten/Einstellungen.tsx';
@@ -32,13 +32,6 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.seite = seite;
   }, [seite]);
-
-  // Die Einstellung „Animationen" steuert die pulsierende Leitung im
-  // Schaltungsbild. Sie wirkt über ein Attribut am Wurzelelement, damit die
-  // Entscheidung in CSS bleibt und nicht in jede Animationsstelle kopiert wird.
-  useEffect(() => {
-    document.documentElement.dataset.animationen = store.einstellungen.animationen ? 'an' : 'aus';
-  }, [store.einstellungen.animationen]);
 
   const termin = naechsterTermin();
   const bericht = faktBericht();
@@ -68,7 +61,7 @@ export default function App() {
         {seite === 'ueben' && <Ueben store={store} wechsle={wechsle} />}
         {seite === 'tabellen' && <Tabellen />}
         {seite === 'pruefung' && <Pruefung store={store} wechsle={wechsle} />}
-        {seite === 'labor' && <Labor store={store} />}
+        {seite === 'kundenauftrag' && <Kundenauftrag store={store} />}
         {seite === 'fortschritt' && <Fortschritt store={store} />}
         {seite === 'bericht' && <Bericht store={store} />}
         {seite === 'einstellungen' && <Einstellungen store={store} />}

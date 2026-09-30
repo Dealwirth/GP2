@@ -39,10 +39,13 @@ const GEPFLEGTE_BESPRECHUNGEN: Record<
     besprechung:
       'Der Leitungsschutzschalter schützt das Kabel, nicht den Verbraucher. ' +
       'Thermisch löst er bei dauerhafter Überlast aus (1,13×In: nie aus, 1,45×In: muss auslösen). ' +
-      'Magnetisch löst er bei Kurzschluss aus: B = 3–5×In, C = 5–10×In, D = 10–20×In. ' +
+      'Magnetisch löst er bei Kurzschluss aus. Der Bereich hat eine untere und eine obere Grenze: ' +
+      'B = 3–5×In, C = 5–10×In, D = 10–20×In. ' +
+      'Für die Abschaltbedingung ist immer die UNTERE Grenze maßgeblich (B = 3×In, C = 5×In, D = 10×In), ' +
+      'denn schon bei diesem Strom muss sicher abgeschaltet werden. ' +
       'Die Kennlinie wählt man nach Einschaltströmen: B für Beleuchtung und Steckdosen, C für Motoren, D für Transformatoren.',
     typischeFragen: [
-      'Welcher Faktor gilt für das magnetische Auslösen der Kennlinie C?',
+      'Welcher Faktor ist für die Abschaltbedingung bei Kennlinie C maßgeblich (untere magnetische Grenze)?',
       'Warum löst ein Leitungsschutzschalter bei 1,13×In nicht aus?',
     ],
     fakten: [

@@ -85,7 +85,7 @@ export function strombelastbarkeit(params: {
   const steps: SolutionStep[] = [
     {
       label: 'I_z aus der Referenztabelle ablesen',
-      substitution: `Verlegeart C, Cu, ${querschnittMm2} mm² → ${iz} A`,
+      substitution: `Verlegeart C, Cu, ${querschnittMm2} mm², ${temperaturC} °C → ${iz} A`,
       result: `I_z = ${iz} A`,
       factId: 'iz-tabelle-verlegeart-c',
     },

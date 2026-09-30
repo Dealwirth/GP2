@@ -35,8 +35,6 @@ export interface Einstellungen {
    * Öffnen Anfragen. Wer sein Kontingent schonen will, stellt hier kleiner.
    */
   vorrat: number;
-  /** Musik/effekte in den Animationen. */
-  animationen: boolean;
   /** Prüfungstermine überschreiben, falls die IHK sie ändert. */
   pruefungsdatumSchriftlich: string;
   pruefungsdatumPraktisch: string;
@@ -52,7 +50,6 @@ export const STANDARDEINSTELLUNGEN: Einstellungen = {
   kiAktiv: true,
   zweitpruefung: true,
   vorrat: 10,
-  animationen: true,
   pruefungsdatumSchriftlich: '2027-05-11',
   pruefungsdatumPraktisch: '2027-06-07',
   eigenerCoachHinweis: '',

@@ -37,8 +37,8 @@ export function deuteFehler(fehler: unknown): { grund: string; naechsterSchritt:
     return {
       grund: 'Das kostenlose Kontingent ist für den Moment aufgebraucht.',
       naechsterSchritt:
-        'Ein bis zwei Minuten warten und erneut versuchen. Der Aufgabenvorrat läuft ' +
-        'in der Zwischenzeit ohne KI weiter.',
+        'Ein bis zwei Minuten warten und erneut versuchen. Der feste Aufgabenvorrat ' +
+        'läuft in der Zwischenzeit ohne KI weiter.',
     };
   }
   if (/Failed to fetch|Netzwerk|NetworkError|Load failed/i.test(roh)) {
@@ -46,7 +46,7 @@ export function deuteFehler(fehler: unknown): { grund: string; naechsterSchritt:
       grund: 'Groq ist von hier aus nicht erreichbar.',
       naechsterSchritt:
         'Internetverbindung prüfen. Ohne Internet arbeiten Lernpfad, Wiederholung ' +
-        'und Prüfungssimulation weiter – nur die neuen Aufgaben fehlen dann.',
+        'und Prüfungssimulation weiter – nur die frisch erzeugten Aufgaben fehlen dann.',
     };
   }
   if (/401|403|Schlüssel|api key|Gültig|invalid_api/i.test(roh)) {

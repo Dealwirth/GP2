@@ -210,7 +210,7 @@ export function Heute(props: { store: Store; wechsle: (s: SeitenName) => void })
         <h3>Weiter</h3>
         <div className="raster raster2">
           <button onClick={() => props.wechsle('lernen')}>Lernpfad</button>
-          <button onClick={() => props.wechsle('labor')}>Labor</button>
+          <button onClick={() => props.wechsle('kundenauftrag')}>Kundenauftrag</button>
           <button onClick={() => props.wechsle('pruefung')}>Prüfungssimulation</button>
           <button onClick={() => props.wechsle('fortschritt')}>Fortschritt</button>
         </div>

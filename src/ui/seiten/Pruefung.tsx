@@ -37,8 +37,9 @@ function restsekunden(pruefung: PruefungDefinition, beginn: number): number {
  *                  simulierbar, weil die echte Prüfung schriftlich ist.
  *   Praktisch    – Kundenauftrag (§ 11), 16 Stunden mit situativem
  *                  Fachgespräch. Das ist eine Werkstattaufgabe; sie wird im
- *                  Labor geübt (Messen, Prüfprotokoll, Anlagenaufbau) und
- *                  hier nicht als Multiple Choice verkleidet.
+ *                  geführten Kundenauftrag geübt (Planung, Ausführung nach
+ *                  den Sicherheitsregeln, Fachgespräch) und hier nicht als
+ *                  Multiple Choice verkleidet.
  *
  * Zwei Regeln gelten in jeder Simulation:
  *  1. Die KI ist aus – keine Hinweise, keine Generierung.
@@ -171,10 +172,11 @@ export function Pruefung(props: { store: Store; wechsle: (s: SeitenName) => void
           16 h + Fachgespräch · {kundenauftrag.paragraph} · zwingend ausreichend
         </div>
         <p className="klein">
-          Anlage aufbauen, messen, Prüfprotokoll schreiben. Wird im Labor geübt – eine
-          Werkstattaufgabe lässt sich nicht als Multiple Choice abfragen.
+          Planung, Ausführung nach den fünf Sicherheitsregeln, Fachgespräch. Wird
+          im geführten Kundenauftrag geübt – eine Werkstattaufgabe lässt sich
+          nicht als Multiple Choice abfragen.
         </p>
-        <button onClick={() => props.wechsle('labor')}>Zum Labor</button>
+        <button onClick={() => props.wechsle('kundenauftrag')}>Zum Kundenauftrag</button>
       </section>
 
       <h3>Bestehensregel § 15</h3>

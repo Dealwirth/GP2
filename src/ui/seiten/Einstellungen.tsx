@@ -202,14 +202,6 @@ export function Einstellungen(props: { store: Store }) {
         <label className="feldLabel">
           <input
             type="checkbox"
-            checked={store.einstellungen.animationen}
-            onChange={(e) => aendern({ animationen: e.target.checked })}
-          />{' '}
-          Animationen im Labor
-        </label>
-        <label className="feldLabel">
-          <input
-            type="checkbox"
             checked={store.einstellungen.taeglicheErinnerung}
             onChange={(e) => aendern({ taeglicheErinnerung: e.target.checked })}
           />{' '}

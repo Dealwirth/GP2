@@ -43,7 +43,7 @@ export const STUFEN_BESCHRIBUNG: Record<Aufgabenstufe, string> = {
   2: 'Minute – Begriff, Maß, Zuordnung, Vorschrift',
   3: 'Kleiner Fall – Situationsbeschreibung mit Folgefragen',
   4: 'Rechnen – mit eingeblendeter Formel und mitgelieferten Tabellenwerten',
-  5: 'Tiefe – Entwurf, Laborstation, Simulation',
+  5: 'Tiefe – Entwurf, Simulationsaufgabe',
 };
 
 /** Antwortformat, angelehnt an die drei Formate der echten Prüfung. */
@@ -199,8 +199,6 @@ export interface TopicStateRecord {
   /** Beginn des aktuellen Erfolgsstrangs – Grundlage für die 3-Tage-Regel. */
   streakStartedAt: string | null;
   nextDue: string | null;
-  /** Erreicht in der Laborübung einmal korrekt (nur Praxistemen). */
-  labSolved: boolean;
   /**
    * Die letzten fünf Versuche als Wahrheitswerte (neueste zuletzt).
    *
@@ -236,7 +234,7 @@ export interface Attempt {
   createdAt: string;
 }
 
-export type SessionMode = 'pause' | 'normal' | 'pruefung' | 'labor';
+export type SessionMode = 'pause' | 'normal' | 'pruefung';
 
 export interface Session {
   sessionId: string;

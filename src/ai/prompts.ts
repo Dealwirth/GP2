@@ -18,25 +18,56 @@ Elektroniker für Energie- und Gebäudetechnik (Bayern).
 
 HARTE REGELN – nicht verhandelbar:
 1. Du ERFINDEST KEINE Zahlen, Grenzwerte, Normnummern oder Formeln.
-2. Jede Zahl im Aufgabentext stammt aus einem der unten gelisteten Fakten.
-   Du zitierst ihn mit seiner factId im Feld factRefs.
+2. Jede Zahl im Aufgabentext stammt aus einer der beiden erlaubten Quellen:
+   a) aus den unten gelisteten FAKTEN – du zitierst sie mit ihrer factId im
+      Feld factRefs;
+   b) aus dem Rezept – das sind die Eingangsgrößen deiner Rechnung
+      (Leistung, Länge, Strom, Querschnitt, cos φ). Diese Zahlen schreibst du
+      in die Felder von "berechnung" und darfst sie im Aufgabentext nennen.
+   Eine Zahl, die weder Fakt noch Rezept-Eingang ist, darf im Aufgabentext
+   NICHT vorkommen. Sonst wird die Aufgabe verworfen.
 3. Du gibst NIEMALS an, welche Antwort richtig ist. Du lieferst drei
-   Antwortmöglichkeiten und begründest, warum die falschen falsch sind.
+   Antwortmöglichkeiten und begründest bei den falschen, warum sie falsch sind
+   (Feld begruendungWennFalsch). Bei der richtigen Option setzt du dort null.
 4. Inhaltlich beschränkst du dich auf die angegebene THEMA-BESPRECHUNG.
    Was dort nicht steht, kommt nicht vor.
 5. Deutsch, knapp, prüfungsnah. Kein Füllmaterial, keine Ausschmückung.
-6. Drei Antwortmöglichkeiten wie im Prüfungsbogen. Plausibel, aber
-   eindeutig falsch – keine Randfälle, bei denen Fachleute streiten.
-7. Genau eine Option muss stimmen; keine Doppeldeutigkeiten.
-8. Wähle für jede Aufgabe das passende Rezept (berechnung) und trage die
-   Fakten-IDs dort ein. Ohne ausführbares Rezept wird die Aufgabe verworfen.
-9. NUR WERTFRAGEN. Die richtige Antwort ist immer der reine Wert mit Einheit
-   (z. B. „1 MΩ"). Zwei Optionen nennen klar andere Werte. Keine Option darf
-   eine Aussage über den Wert sein („kleiner als 1 MΩ", „mindestens 1 MΩ") –
-   solche Aussagen kann die Rechen-Engine nicht prüfen, und die Aufgabe fällt
-   durch. Frage nach dem Wert, nicht nach einem Begriff.
-10. Der Rechenweg muss die Antwort eindeutig festlegen. Reicht die Faktenlage
-    nicht für einen Wert, stelle keine Aufgabe zu diesem Aspekt.
+6. Genau drei Antwortmöglichkeiten wie im Prüfungsbogen. Eine davon ist das
+   Ergebnis deiner Rechnung. Die beiden anderen sind klar andere, aber
+   plausible Werte – keine Randfälle, bei denen Fachleute streiten.
+7. Wähle für jede Aufgabe das passende Rezept (berechnung) und fülle die
+   Felder vollständig aus. Ohne ausführbares Rezept wird die Aufgabe verworfen.
+8. Die richtige Antwort ist immer der reine Wert mit Einheit (z. B. „1 MΩ").
+   Keine Option darf eine Aussage über den Wert sein („kleiner als 1 MΩ",
+   „mindestens 1 MΩ") – solche Aussagen kann die Rechen-Engine nicht prüfen,
+   und die Aufgabe fällt durch. Frage nach dem Wert, nicht nach einem Begriff.
+9. Rechne das Ergebnis selbst aus und nimm es als eine der drei Optionen auf.
+   Die Engine rechnet nach und sucht die passende Option; fehlt sie, wird die
+   Aufgabe verworfen.
+10. Stelle die Frage so, dass der Rechenweg die Antwort eindeutig festlegt.
+    Schreibe das Ergebnis NICHT in den Aufgabentext.
+`.trim();
+
+/**
+ * Verweis auf die verifizierten Primärquellen.
+ *
+ * Die KI darf keine Normnummern erfinden. Damit sie trotzdem prüfungsnah
+ * formulieren kann, bekommt sie die belegten Quellen mit ihrer Kennung
+ * mitgeliefert. Sie sind gegen `src/content/facts/quellen.ts` gepflegt und
+ * dort mit URL hinterlegt – was hier steht, ist am Original nachweisbar.
+ */
+const QUELLENVERWEISE = `
+BELEGTE QUELLEN (nur diese darfst du nennen; keine erfundenen Normnummern):
+- ElekAusbV (BGBl. I 2021 S. 662, 699) – Ausbildungsverordnung, Prüfungsstruktur.
+- DIN VDE 0100-410:2018-10 – Schutz gegen elektrischen Schlag.
+- DIN VDE 0100-600:2017-06 – Erstprüfung elektrischer Anlagen.
+- DIN VDE 0105-100:2015-10 – Betrieb elektrischer Anlagen.
+- DIN VDE 0298-4:2013-06 – Strombelastbarkeit von Kabeln und Leitungen.
+- DIN VDE 0701-0702:2008-06 – Prüfung elektrischer Geräte.
+- DGUV Vorschrift 3 – Elektrische Anlagen und Betriebsmittel.
+- DGUV Information 203-072 – Wiederkehrende Prüfungen ortsfester Anlagen.
+- TRBS 1201 (BAuA) – Prüfungen und Kontrollen von Arbeitsmitteln.
+- Betriebssicherheitsverordnung (BetrSichV), insbesondere § 14.
 `.trim();
 
 /**
@@ -71,16 +102,32 @@ export function systemPromptFuerAufgaben(atom: Atom, faktenIds: string[], lager?
 
   teile.push('', 'ZULÄSSIGE FAKTEN (nur diese Werte darfst du verwenden):');
   teile.push(fakten || '- Keine Zahlen verwenden. Nur Begriffswissen abfragen.');
+  teile.push('', QUELLENVERWEISE);
   teile.push(
     '',
-    'REZEPT (Feld berechnung):',
-    'Wähle je Aufgabe einen der Werte für art: abschaltbedingung (braucht ' +
-      'u0FactId + idnFactId), strombelastbarkeit (querschnittMm2 + weg), ' +
-      'strom-einphasig / strom-drehstrom (u0FactId + leistungW + cosPhi), ' +
-      'spannungsfall (laengeM + stromA + querschnittMm2), ' +
-      'schleifenwiderstand (u0FactId + inA + kennlinie) oder faktenwert ' +
-      '(factId). Alle Felder, die zum art nicht gehören, sind null. Die ' +
-      'Fact-IDs müssen exakt aus der Liste oben stammen.',
+    'REZEPT (Feld berechnung) – wähle EINE art und fülle GENAU ihre Felder:',
+    '- faktenwert:        factId = ID eines Fakts oben, der einen Wert hat. ' +
+      'Frage den Wert dieses Fakts ab. Alle übrigen Felder null.',
+    '- abschaltbedingung: u0FactId + idnFactId (beide aus der Liste). ' +
+      'Ergibt R = U0 / IΔn. Übrige Felder null.',
+    '- strombelastbarkeit: querschnittMm2 (Zahl) + weg ("referenz-iz" oder ' +
+      '"schultabelle"). Übrige Felder null.',
+    '- strom-einphasig:  u0FactId + leistungW (Zahl) + cosPhi (Zahl). Übrige null.',
+    '- strom-drehstrom:  u0FactId + leistungW (Zahl) + cosPhi (Zahl). Übrige null.',
+    '- spannungsfall:    laengeM + stromA + querschnittMm2 (alle Zahlen). Übrige null.',
+    '- schleifenwiderstand: u0FactId + inA (Zahl) + kennlinie ("B","C" oder "D"). ' +
+      'Übrige null.',
+    '',
+    'Beispiel für faktenwert: ' +
+      '{"art":"faktenwert","factId":"riso-grenzwert","u0FactId":null,"idnFactId":null,' +
+      '"querschnittMm2":null,"weg":null,"leistungW":null,"cosPhi":null,"laengeM":null,' +
+      '"stromA":null,"inA":null,"kennlinie":null}',
+    '',
+    'Die Zahl, die das Rezept als Eingang nutzt (leistungW, laengeM, stromA, ' +
+      'querschnittMm2, inA), darf im Aufgabentext stehen – sie ist kein ' +
+      'Normwert, sondern das Szenario der Aufgabe. Das Ergebnis der Rechnung ' +
+      'gehört dagegen NICHT in den Aufgabentext, sondern als eine der drei ' +
+      'Antwortoptionen.',
   );
   return teile.join('\n');
 }
@@ -94,10 +141,24 @@ Antworte ausschließlich mit dem verlangten JSON-Objekt.
 Prüfe:
 1. Ist die Frage fachlich eindeutig beantwortbar?
 2. Ist genau eine der drei Optionen richtig?
-3. Wird ein Zahlenwert verwendet, der nicht aus der Faktenbasis stammt?
+3. Wird ein Zahlenwert verwendet, der nicht aus der Faktenbasis oder aus dem
+   Rechenweg stammt?
 4. Ist die Fragestellung prüfungsnah und nicht trivial?
 5. Enthält eine falsche Option einen Fehler, der auch Fachleute nicht
    für richtig halten könnten?
+
+WICHTIG – prüfe nur das, was wirklich vorliegt:
+- Das Ergebnis in der Zeile "Berechnetes Ergebnis" stammt aus der Rechen-Engine
+  und ist die richtige Antwort. Ist eine der Optionen genau dieser Wert, ist
+  die Aufgabe richtig gestellt. Beanstande sie NICHT, weil eine Option den
+  Wert nennt, ohne ihn weiter zu erklären.
+- Eine Wertoption wie "5 × In" ist vollständig. Verlange keine zusätzlichen
+  Bezüge im Aufgabentext, wenn der Wert aus dem Rechenweg oder aus einem
+  genannten Fakt folgt.
+- Bei Kennlinien (B/C/D) und anderen Bereichen mit Ober- und Untergrenze:
+  Frage NICHT nach "dem Faktor", wenn beide Grenzen möglich wären. Wenn die
+  Aufgabe nach der für die Abschaltbedingung maßgeblichen (unteren) Grenze
+  fragt und der Aufgabentext das sagt, ist sie eindeutig – beanstande nicht.
 
 "verdacht" = "kein", wenn nichts zu beanstanden ist, sonst der konkrete
 Grund. Bei "mehrdeutig" oder "fachlich" formulierst du zusätzlich einen

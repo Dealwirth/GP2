@@ -58,6 +58,19 @@ export interface ValidierungsOptionen {
    */
   vorgegebeneWerte?: string[];
   /**
+   * Werte, die als Eingangsgrößen in ein ausgeführtes Rezept geflossen sind.
+   *
+   * Das sind Lastwerte, Längen, Ströme und Querschnitte, die die Aufgabe als
+   * Szenario setzt – die Engine hat sie verarbeitet und daraus die Antwort
+   * gerechnet. Sie dürfen deshalb im Aufgabentext stehen. Der Unterschied zu
+   * `vorgegebeneWerte`: Diese Zahlen sind keine frei gewählten Behauptungen,
+   * sondern nachweislich die Eingänge eines Rechenwegs, dessen Ergebnis die
+   * richtige Antwort festlegt. Eine erfundene Normzahl lässt sich so nicht
+   * unterbringen – sie würde im Rezept als Eingang auftauchen und die Rechnung
+   * verändern, nicht die Antwort bestätigen.
+   */
+  rezeptWerte?: string[];
+  /**
    * Duplikatsperre abschalten.
    *
    * Nur für den deterministischen Aufgabenvorrat. Die Sperre soll verhindern,
@@ -117,6 +130,7 @@ export function pruefeFaktenbindung(
   engineWerte: string[] = [],
   korrektOptionId?: string,
   vorgegebeneWerte: string[] = [],
+  rezeptWerte: string[] = [],
 ): ValidationCheck {
   const gebunden = new Set<number>();
 
@@ -124,6 +138,13 @@ export function pruefeFaktenbindung(
   for (const z of vorgegebeneWerte) {
     const wert = alsZahl(z);
     if (wert !== null) gebunden.add(wert);
+  }
+
+  // Eingangsgrößen eines ausgeführten Rezepts sind belegt: die Engine hat
+  // mit ihnen gerechnet, das Ergebnis ist die richtige Antwort.
+  for (const z of rezeptWerte) {
+    const wert = alsZahl(z);
+    if (wert !== null) gebunden.add(runde(wert));
   }
 
   for (const z of engineWerte) {
@@ -275,6 +296,7 @@ export function validiere(
       opt.engineWerte ?? [],
       opt.korrektOptionId,
       opt.vorgegebeneWerte ?? [],
+      opt.rezeptWerte ?? [],
     ),
     pruefeGueltigkeit(proposal, opt),
     pruefeDuplikat(paramsHash, pruefeDuplikate),
