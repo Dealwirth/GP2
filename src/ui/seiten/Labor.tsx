@@ -398,14 +398,32 @@ function PlanSeite(props: { store: Store }) {
 function ProtokollSeite(props: { store: Store }) {
   // Ein begonnenes Prüfprotokoll ist wertvolle Arbeit – es darf nicht
   // verschwinden, nur weil die Seite neu geladen wurde. Der Anlass der Prüfung
-  // gehört dazu: Anlage und Gerät sind verschiedene Protokolle.
+  // gehört dazu: Anlage und Gerät sind verschiedene Protokolle. Beide liegen
+  // unter einem Schlüssel, damit ein Reiterwechsel nur die Auswahl ändert und
+  // nicht neu initialisiert.
+  const start: Record<Pruefart, ProtokollEintrag[]> = {
+    anlage: leeresProtokoll({ u0: 230, idnA: 0.03 }, 'anlage'),
+    geraet: leeresProtokoll(undefined, 'geraet'),
+  };
   const [art, setArt] = useGespeichert<Pruefart>('pruefart', 'anlage');
-  const [eintraege, setEintraege, zuruecksetzen] = useGespeichert<ProtokollEintrag[]>(
-    `messprotokoll-${art}`,
-    leeresProtokoll({ u0: 230, idnA: 0.03 }, art),
+  const [protokolle, setProtokolle] = useGespeichert<Record<Pruefart, ProtokollEintrag[]>>(
+    'messprotokolle',
+    start,
   );
+  const eintraege = protokolle[art] ?? start[art];
   const schritte = PRUEFSCHRITTE_NACH_ART[art];
   const auswertung = useMemo(() => bewerteProtokoll(eintraege, art), [eintraege, art]);
+
+  const setEintraege = (
+    neu: ProtokollEintrag[] | ((alt: ProtokollEintrag[]) => ProtokollEintrag[]),
+  ): void => {
+    setProtokolle((alt) => {
+      const bisher = alt[art] ?? start[art];
+      return { ...alt, [art]: typeof neu === 'function' ? neu(bisher) : neu };
+    });
+  };
+
+  const zuruecksetzen = (): void => setEintraege(start[art]);
 
   const setzen = (schrittId: string, feld: 'messwert' | 'durchgefuehrt', wert: unknown): void => {
     setEintraege((alt) =>
