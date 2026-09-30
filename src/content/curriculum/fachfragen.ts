@@ -609,19 +609,37 @@ export const FACHFRAGEN: FachFrage[] = [
   {
     id: 'f-ka-10',
     bereich: 'kundenauftrag',
-    frage: 'Was ist beim Aufbau eines Entenes in einem Verbraucherkreis zu beachten?',
+    frage: 'Was ist beim Anschluss einer Wallbox in einem Verbraucherkreis zu beachten?',
     richtig:
       'Anforderungen an Typ und Absicherung, Leiterbelastung, Abschaltmöglichkeit und die Rückwirkungen auf den Gesamtstromkreis prüfen',
     falsch: [
       'Nur Stecker und Leitung nach Länge wählen',
-      'Den Entene über eine Leitung des Lichtstromkreises versorgen, um Leitungen zu sparen',
+      'Die Wallbox über eine Leitung des Lichtstromkreises versorgen, um Leitungen zu sparen',
     ],
     begruendung:
-      'Ein Entene gehört in einen eigenen, passend abgesicherten Stromkreis. Die ' +
+      'Eine Wallbox gehört in einen eigenen, passend abgesicherten Stromkreis. Die ' +
       'Rückwirkungen auf den Bestand sind zu prüfen.',
-    erklaerung: 'Entene: eigener Stromkreis, Typ, Absicherung, Abschaltmöglichkeit, Rückwirkung prüfen.',
-    topicIds: ['ka-gebaeudetechnik-10', 'ka-verteilung-08'],
+    erklaerung: 'Wallbox: eigener Stromkreis, Typ, Absicherung, Abschaltmöglichkeit, Rückwirkung prüfen.',
+    topicIds: ['ka-gebaeudetechnik-08', 'ka-gebaeudetechnik-09'],
     verweis: 'Berufsbildposition 7 – Gebäudetechnik',
+  },
+  {
+    id: 'f-ka-11',
+    bereich: 'kundenauftrag',
+    frage: 'Wofür stehen die beiden Teile der DIN VDE 0701-0702?',
+    richtig:
+      '0701 für die Prüfung nach Instandsetzung oder Änderung, 0702 für die Wiederholungsprüfung im Betrieb',
+    falsch: [
+      '0701 für ortsfeste Anlagen, 0702 für ortsveränderliche Geräte',
+      '0701 für die Erstprüfung, 0702 für die Abnahme durch den Netzbetreiber',
+    ],
+    begruendung:
+      '0701 und 0702 haben denselben Messumfang, aber einen anderen Anlass: 0701 ' +
+      'nach einer Änderung oder Reparatur, 0702 als planmäßige Wiederholungsprüfung. ' +
+      'Die Prüfung der ortsfesten Anlage dagegen steht in DIN VDE 0100-600.',
+    erklaerung: '0701 = nach Instandsetzung/Änderung, 0702 = Wiederholungsprüfung.',
+    topicIds: ['ka-pruefung-01', 'ka-pruefung-08'],
+    verweis: 'Berufsbildposition 7 – Prüfen von Geräten und Betriebsmitteln',
   },
 
   // -------------------------------------------------------------------------

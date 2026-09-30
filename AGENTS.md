@@ -61,19 +61,25 @@ Alle vier laufen in der CI vor dem Deploy.
 
 Nach Dringlichkeit, nicht nach Aufwand sortiert.
 
-### 1. Praktische Geräte- und Anlagenprüfung fehlt (fachliche Lücke)
-`labor/pruefprotokoll.ts` deckt nur die Anlagenprüfung nach VDE 0100-600 ab
+### 1. Praktische Geräte- und Anlagenprüfung (fachliche Lücke)
+`labor/pruefprotokoll.ts` deckt die Anlagenprüfung nach VDE 0100-600 ab
 (Durchgang PE/Leiter, Riso, Schleifenwiderstand, RCD-Auslösezeit,
-Spannungsfall). Es fehlt die **Geräteprüfung** – und damit ein ganzer
-Prüfungsteil:
+Spannungsfall).
 
-- VDE 0701-0702: Sichtprüfung, Schutzleiterwiderstand, **Isolationswiderstand
-  und Ersatzableitstrom**, Funktion.
-- Die Unterscheidung 0701 (Reparatur/Änderung) gegen 0702
-  (Wiederholungsprüfung) wird nirgends abgefragt.
-- Ableitstrom als Messart fehlt in `messgeraet.ts` (`MESSARTEN` hat mA/A, aber
-  keine Ableitstrommessung am Gerät).
-- `kundenauftrag.ts` hat nur drei Szenarien (Wärmepumpe, Wallbox, PV) – alle
+Teilweise geschlossen am 30.09.:
+- **Ableitstrom ist eine Messart** in `messgeraet.ts` (`MESSARTEN`), mit
+  eigener Messaufgabe `ableitstrom-pe`. Die Besonderheit ist modelliert:
+  gemessen wird im Betrieb gegen den Schutzleiter, über die mA-Buchse; am
+  abgeschalteten Gerät zeigt das Gerät null, und das ist kein Beweis.
+- Die **Unterscheidung 0701/0702** wird jetzt als Fachfrage `f-ka-11`
+  abgefragt (0701 nach Instandsetzung/Änderung, 0702 Wiederholungsprüfung,
+  0100-600 für die ortsfeste Anlage).
+
+Weiterhin offen:
+- Die Prüfschritte der **Geräteprüfung** selbst (Schutzleiterwiderstand,
+  Riso, Ersatzableitstrom, Funktion) fehlen in `pruefprotokoll.ts` – der
+  Bestand dort ist die Anlagenprüfung.
+- `kundenauftrag.ts` hat drei Szenarien (Wärmepumpe, Wallbox, PV) – alle
   sind *Installationen*, keine *Wiederholungsprüfung eines Betriebsmittels*.
 
 ### 2. KI-Erzeugung ist intermittierend (Produktkern wackelt)

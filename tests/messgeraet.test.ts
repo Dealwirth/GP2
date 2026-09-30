@@ -266,6 +266,77 @@ describe('Zahlendarstellung', () => {
   });
 });
 
+describe('Ableitstrom', () => {
+  const aufgabe = MESSAUFGABEN.find((a) => a.id === 'ableitstrom-pe')!;
+
+  it('zeigt im Betrieb den kleinen Schutzleiterstrom', () => {
+    const anzeige = messen(
+      geraet({ messart: 'ableitstrom', roteBuchse: 'mA' }),
+      anlageUnterSpannung,
+      punkt('pe'),
+      punkt('pas'),
+    );
+    expect(anzeige.text).toBe('1,2');
+    expect(anzeige.einheit).toBe('mA');
+    expect(anzeige.sinnvoll).toBe(true);
+    expect(anzeige.warnung).toBeUndefined();
+  });
+
+  it('zeigt am abgeschalteten Gerät null und weist darauf hin', () => {
+    const anzeige = messen(
+      geraet({ messart: 'ableitstrom', roteBuchse: 'mA' }),
+      anlageFrei,
+      punkt('pe'),
+      punkt('pas'),
+    );
+    expect(anzeige.wert).toBe(0);
+    expect(anzeige.sinnvoll).toBe(false);
+    expect(anzeige.warnung).toContain('abgeschaltet');
+  });
+
+  it('verlangt den Schutzleiter als Messpunkt', () => {
+    const anzeige = messen(
+      geraet({ messart: 'ableitstrom', roteBuchse: 'mA' }),
+      anlageUnterSpannung,
+      punkt('l1'),
+      punkt('n'),
+    );
+    expect(anzeige.sinnvoll).toBe(false);
+    expect(anzeige.warnung).toContain('Schutzleiter');
+  });
+
+  it('verlangt die mA-Buchse', () => {
+    const anzeige = messen(
+      geraet({ messart: 'ableitstrom', roteBuchse: 'A' }),
+      anlageUnterSpannung,
+      punkt('pe'),
+      punkt('pas'),
+    );
+    expect(anzeige.sinnvoll).toBe(false);
+    expect(anzeige.warnung).toContain('mA');
+  });
+
+  it('erkennt eine richtige Ableitstrommessung als richtig', () => {
+    const anzeige = messen(
+      geraet({ messart: 'ableitstrom', roteBuchse: 'mA' }),
+      anlageUnterSpannung,
+      punkt('pe'),
+      punkt('pas'),
+    );
+    const befund = bewerteMessung(aufgabe, geraet({ messart: 'ableitstrom', roteBuchse: 'mA' }), anlageUnterSpannung, 'pe', 'pas', anzeige);
+    expect(befund.richtig).toBe(true);
+    expect(befund.maengel).toEqual([]);
+  });
+
+  it('wertet eine Ableitstrommessung am abgeschalteten Gerät als Mangel', () => {
+    const g = geraet({ messart: 'ableitstrom', roteBuchse: 'mA' });
+    const anzeige = messen(g, anlageFrei, punkt('pe'), punkt('pas'));
+    const befund = bewerteMessung(aufgabe, g, anlageFrei, 'pe', 'pas', anzeige);
+    expect(befund.richtig).toBe(false);
+    expect(befund.maengel.some((m) => m.includes('abgeschaltet'))).toBe(true);
+  });
+});
+
 describe('Übernahme ins Prüfprotokoll', () => {
   it('trägt einen Wert in der passenden Einheit ein', () => {
     const eintraege = leeresProtokoll({ u0: 230, idnA: 0.03 });

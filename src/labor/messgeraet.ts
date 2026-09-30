@@ -55,6 +55,15 @@ export interface Anlage {
   titel: string;
   /** Ist die Anlage eingeschaltet? Bestimmt, ob Spannung anliegt. */
   unterSpannung: boolean;
+  /**
+   * Ableitstrom des Betriebsmittels in mA.
+   *
+   * Ein gesundes Gerät führt einen kleinen Strom über die Isolierung und den
+   * Schutzleiter ab. Genau diesen Strom misst die Ableitstrommessung – er ist
+   * nicht null, obwohl zwischen den Messpunkten keine Spannung anliegt. Das
+   * unterscheidet sie von jeder anderen Messung in diesem Modul.
+   */
+  ableitstromMa: number;
   punkte: Messpunkt[];
   verbindungen: Verbindung[];
 }
@@ -75,7 +84,8 @@ export type Messart =
   | 'durchgang'
   | 'isolation'
   | 'strom-ma'
-  | 'strom-a';
+  | 'strom-a'
+  | 'ableitstrom';
 
 export type Buchse = 'VΩ' | 'mA' | 'A';
 
@@ -168,6 +178,16 @@ export const MESSARTEN: MessartInfo[] = [
     bedingung: 'In Reihe messen, nur in der 10-A-Buchse.',
     symbol: 'A',
   },
+  {
+    id: 'ableitstrom',
+    beschriftung: 'Ableitstrom',
+    einheit: 'mA',
+    buchse: 'mA',
+    bedingung:
+      'Schutzleiterstrom des Betriebsmittels, im Betrieb. Über die mA-Buchse, ' +
+      'weil der Wert klein ist.',
+    symbol: 'I⏚',
+  },
 ];
 
 export function messartInfo(id: Messart): MessartInfo {
@@ -255,6 +275,8 @@ export function messen(
       return strom(anlage, punktA, punktB, 'mA');
     case 'strom-a':
       return strom(anlage, punktA, punktB, 'A');
+    case 'ableitstrom':
+      return ableitstrom(anlage, punktA, punktB);
   }
 }
 
@@ -484,6 +506,66 @@ function strom(
   };
 }
 
+function ableitstrom(anlage: Anlage, a: Messpunkt, b: Messpunkt): Anzeige {
+  // Der Ableitstrom ist ein Schutzleiterstrom: Er wird zwischen Schutzleiter
+  // und Bezugserde gemessen, im Betrieb. Nicht an beliebigen Punkten.
+  const beteiligt = (p: Messpunkt): boolean => p.potential === 'PE';
+  if (!beteiligt(a) || !beteiligt(b)) {
+    return {
+      text: '0,0',
+      einheit: 'mA',
+      wert: 0,
+      sinnvoll: false,
+      warnung:
+        'Der Ableitstrom wird gegen den Schutzleiter gemessen – eine Messspitze ' +
+        'gehört an PE. Zwischen Betriebsleitern gemessen zeigt das Gerät null.',
+    };
+  }
+
+  // Ohne Betrieb fließt auch kein Ableitstrom. Das ist der zweite typische
+  // Fehler: Man misst am abgeschalteten Gerät und hält die Null für gut.
+  if (!anlage.unterSpannung) {
+    return {
+      text: '0,0',
+      einheit: 'mA',
+      wert: 0,
+      sinnvoll: false,
+      warnung:
+        'Das Betriebsmittel ist abgeschaltet. Der Ableitstrom entsteht nur im ' +
+        'Betrieb – einschalten und erneut messen.',
+    };
+  }
+
+  const verbindung = findeVerbindung(anlage, a.id, b.id);
+  // Ein satter Kurzschluss zwischen den Punkten ist kein Ableitstrom, sondern
+  // ein Isolationsfehler: Der ganze Fehlerstrom fließt über den Schutzleiter.
+  if (verbindung && verbindung.ohm < 1000) {
+    return {
+      text: formatZahl(verbindung.ohm / 1000, 2),
+      einheit: 'mA',
+      wert: verbindung.ohm / 1000,
+      sinnvoll: false,
+      gefahr: 'person',
+      warnung:
+        `Niederohmige Verbindung (${formatZahl(verbindung.ohm, 1)} Ω) zwischen ` +
+        'den Punkten – das ist ein Isolationsfehler mit hohem Ableitstrom, ' +
+        'kein gesunder Betriebszustand.',
+    };
+  }
+
+  const wert = anlage.ableitstromMa;
+  return {
+    text: formatZahl(wert, 1),
+    einheit: 'mA',
+    wert,
+    sinnvoll: true,
+    warnung:
+      wert > 3.5
+        ? 'Der Ableitstrom liegt über dem Richtwert für ein Betriebsmittel dieser Art – Ursache suchen.'
+        : undefined,
+  };
+}
+
 function findeVerbindung(anlage: Anlage, a: string, b: string): Verbindung | undefined {
   return anlage.verbindungen.find(
     (v) => (v.a === a && v.b === b) || (v.a === b && v.b === a),
@@ -608,6 +690,27 @@ export const MESSAUFGABEN: Messaufgabe[] = [
       'nicht mit dem Durchgangsprüfer allein, weil der Wert gebraucht wird.',
     punkte: 4,
   },
+  {
+    id: 'ableitstrom-pe',
+    titel: 'Ableitstrom messen',
+    auftrag:
+      'Prüfe im Betrieb, welcher Strom über den Schutzleiter abfließt – der ' +
+      'Ableitstrom des Betriebsmittels.',
+    messart: 'ableitstrom',
+    buchse: 'mA',
+    punktA: 'pe',
+    punktB: 'pas',
+    spannungsfrei: false,
+    protokollSchritt: null,
+    protokollEinheit: 'mA',
+    erwartung: 'Ein kleiner Strom im Milliampere-Bereich, deutlich unter dem Fehlerstrom',
+    begruendung:
+      'Der Ableitstrom wird im Betrieb gemessen, nicht spannungsfrei – er entsteht ' +
+      'erst, wenn Spannung anliegt. Gemessen wird zwischen Schutzleiter und ' +
+      'Bezugserde über die mA-Buchse, weil der Wert klein ist. Ein Wert nahe null ' +
+      'am abgeschalteten Gerät beweist nichts.',
+    punkte: 4,
+  },
 ];
 
 export function messaufgabe(id: string): Messaufgabe {
@@ -620,6 +723,10 @@ export function messAnlage(unterSpannung = true): Anlage {
     id: 'verteiler',
     titel: 'Verteiler mit Außenleiter, Neutralleiter und Schutzleiter',
     unterSpannung,
+    // Ein gesundes Betriebsmittel führt einen kleinen Strom über Isolierung und
+    // Schutzleiter ab. Der Wert ist klein, aber nicht null – wer ihn für einen
+    // Messfehler hält, sucht an der falschen Stelle.
+    ableitstromMa: 1.2,
     punkte: [
       { id: 'l1', bezeichnung: 'Außenleiter L1', potential: 'L1', hinweis: 'Führender Leiter, 230 V gegen N.' },
       { id: 'n', bezeichnung: 'Neutralleiter N', potential: 'N', hinweis: 'Rückleiter, im Betrieb nahe null.' },
