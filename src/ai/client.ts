@@ -39,13 +39,27 @@ export const DIRECT_GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
  */
 export const EINGEBAUTER_SCHLUESSEL: string = BAU_ZEIT_SCHLUESSEL;
 
+/**
+ * Verfügbare Modelle.
+ *
+ * Qwen steht vorn, und das ist keine Geschmacksfrage: Die GPT-OSS-Modelle
+ * sind Denkmodelle, die einen Teil ihres Antwortbudgets für den Denkweg
+ * verbrauchen. Beim strengen JSON-Schema dieses Trainers reicht der Rest
+ * regelmäßig nicht – Groq antwortet mit „Failed to validate JSON", das
+ * Modell liefert also gar nichts. Qwen liefert dasselbe Schema zuverlässig.
+ *
+ * GPT-OSS bleibt als Ausweich stehen: Der Client fällt bei einem
+ * Schema-Fehler selbsttätig auf den einfachen JSON-Modus zurück. Wer den
+ * schnelleren Weg will, kann umschalten – und sieht im Selbsttest sofort,
+ * ob es trägt.
+ */
 export const STANDARD_MODELLE: Record<string, string> = {
-  'Groq: GPT-OSS 120b (Standard)': 'openai/gpt-oss-120b',
-  'Groq: GPT-OSS 20b (schnell)': 'openai/gpt-oss-20b',
-  'Groq: Qwen 3.8 27b (Ausweich)': 'qwen/qwen3.8-27b',
+  'Qwen 3.8 27b (zuverlässig, Standard)': 'qwen/qwen3.8-27b',
+  'Groq: GPT-OSS 20b (schnell, Ausweich)': 'openai/gpt-oss-20b',
+  'Groq: GPT-OSS 120b (präzise, Ausweich)': 'openai/gpt-oss-120b',
 };
 
-export const STANDARD_MODELL: string = 'openai/gpt-oss-120b';
+export const STANDARD_MODELL: string = 'qwen/qwen3.8-27b';
 
 export interface AiEinstellungen {
   /** Endpunkt. Fester Wert, bleibt aus Kompatibilitätsgründen bestehen. */
@@ -119,6 +133,14 @@ export async function frage(
       { role: 'user', content: anfrage.nutzer },
     ],
     temperature: anfrage.temperatur ?? 0.3,
+    // Festes Budget für die Antwort. Die GPT-OSS-Modelle sind Denkmodelle:
+    // Sie verbrauchen einen Teil des Budgets für ihren Denkweg, bevor die
+    // eigentliche JSON-Antwort entsteht. Ohne ausdrückliches Budget greift
+    // die Voreinstellung des Anbieters – und die reicht bei einem so
+    // ausführlichen Schema nicht: Der Aufruf endet mit „max completion
+    // tokens reached", das Modell liefert gar nichts, und die ganze Runde
+    // fällt aus. 4096 Token decken Denkweg plus Aufgabentext sicher ab.
+    max_completion_tokens: 4096,
   };
 
   if (anfrage.schema) {

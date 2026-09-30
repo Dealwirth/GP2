@@ -169,7 +169,7 @@ export function KiHinweis(props: {
       </div>
       <p className="klein">
         Alles andere läuft weiter: Lernpfad, Wiederholung, Prüfungssimulation und
-        Labor brauchen keine Verbindung.
+        Kundenauftrag brauchen keine Verbindung.
       </p>
     </div>
   );

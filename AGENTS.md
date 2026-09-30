@@ -1,5 +1,30 @@
 # EGT-Prüfungstrainer (GP2) – Arbeitsnotizen
 
+## Zuletzt erledigt (30.09., dritte Runde)
+- **KI-Erzeugung wirklich repariert – Ursache war das Modell.** Der echte
+  Grund, warum keine Aufgaben entstanden: Groq wurde mit `openai/gpt-oss-120b`
+  aufgerufen. Das ist ein Denkmodell; beim strengen JSON-Schema dieses Trainers
+  verbraucht es sein Antwortbudget für den Denkweg und antwortet mit
+  `400 json_validate_failed` bzw. „max completion tokens reached" – es kommt
+  gar kein Inhalt zurück. Live gemessen: GPT-OSS 120b/20b scheitern
+  reproduzierbar am Schema, **`qwen/qwen3.8-27b` liefert es zuverlässig**.
+  Standardmodell ist deshalb jetzt Qwen; GPT-OSS bleibt als Ausweich.
+  Zusätzlich setzt `client.ts` ein festes `max_completion_tokens: 4096`, damit
+  ein Denkmodell überhaupt Platz für eine Antwort hat. Live verifiziert:
+  `erzeugeAufgaben` liefert 2 Aufgaben, beide 5/5 Prüfungen grün.
+- **KI-Selbsttest** (`src/ai/selbsttest.ts`, `scripts/ki-selbsttest.ts`).
+  Prüft die Kette Stufe für Stufe (Verbindung → Vorschlag → Rechnung →
+  Validierung) und nennt bei Fehlschlag die Stelle plus den Rohtext des
+  Modells. In der KI-Werkstatt als Knopf, auf der Kommandozeile über
+  `GROQ_KEY=gsk_… npm run ki:test` (optional `GROQ_MODELL=…`).
+- **Oberfläche ist getestet** (`tests/ui/`, jsdom). `vite.config.ts` fährt
+  jetzt zwei getrennte Projekte: `domaene` (Node, `tests/*.test.ts`) und
+  `oberflaeche` (jsdom, `tests/ui/**/*.test.tsx`). Erste Render-Tests decken
+  Tabellenblatt, Inhaltsverzeichnis-Blatt und Fehlergrenze ab.
+- **Labor restlos entfernt.** Letzte Textstelle (`KiStatus.tsx`, „… und Labor
+  brauchen keine Verbindung") auf Kundenauftrag umgestellt. Messgerät-Begriffe
+  im Lerninhalt bleiben – das sind Prüfungsinhalte, kein Labor-Rest.
+
 ## Zuletzt erledigt (30.09., zweite Runde)
 - **KI-Erzeugung stabilisiert.** Drei Ursachen behoben: (a) Rezept-Eingänge
   (Last, Länge, Strom, Querschnitt) gelten als gebundene Zahlen
@@ -50,12 +75,23 @@ werden – kein Wert aus einem KI-Vorschlag wird ungeprüft übernommen.
 
 ## Befehle
 - `npm run typecheck` – `tsc --noEmit`
-- `npm test` – Vitest, `tests/**/*.test.ts`
+- `npm test` – Vitest (Projekt `domaene`: `tests/*.test.ts`; Projekt
+  `oberflaeche`: `tests/ui/**/*.test.tsx` in jsdom)
 - `npm run facts:check` – prüft die Faktenbasis (`src/content/facts`)
+- `npm run ki:test` – KI-Selbsttest von der Kommandozeile
+  (`GROQ_KEY=gsk_… npm run ki:test`, optional `GROQ_MODELL=…`)
 - `npm run build` – Vite-Build nach `dist/`
-Alle vier laufen in der CI vor dem Deploy.
+Alle laufen in der CI vor dem Deploy.
 
 ## Fallstricke
+- **Das Modell entscheidet über Erfolg oder Ausfall.** Die GPT-OSS-Modelle von
+  Groq sind Denkmodelle und scheitern reproduzierbar am strengen JSON-Schema
+  (`400 json_validate_failed`). `qwen/qwen3.8-27b` ist der Standard, weil es
+  liefert. Wer das Modell wechselt, prüft zuerst mit `npm run ki:test` – sonst
+  sucht man den Fehler in der Pipeline, obwohl er am Modell liegt.
+- **Antwortbudget nicht vergessen.** `client.ts` setzt `max_completion_tokens`
+  fest. Ohne das endet ein Denkmodell mit „max completion tokens reached" und
+  liefert gar nichts. Wer das Budget senkt, muss den Selbsttest laufen lassen.
 - **Duplikatsperre** (`src/validation/pipeline.ts`) ist ein *modulweiter*
   Speicher. In Tests, die mehrfach dieselben Parameter erzeugen, vorher
   `leereDuplikatspeicher()` aufrufen – sonst verschwindet die zweite Aufgabe
@@ -138,16 +174,16 @@ Kontingent leerräumt. Saubere Variante: dünne Serverless-Funktion davor, die
 den Schlüssel hält; die App schickt dorthin. Ändert nichts an der Architektur
 – `client.ts` bleibt die einzige Stelle, die den Endpunkt kennt.
 
-### 4. UI ist nicht getestet (Regressionen bleiben unsichtbar)
-`vite.config.ts` setzt `environment: 'node'`. Die 13 Testdateien decken
-Domäne, Engine, Validierung und Inhalte sehr gut ab – aber keine einzige
-Komponente. Genau die Stellen, an denen gerade gearbeitet wurde
-(`Ueben.tsx`, `Pruefung.tsx`, `Tabellen.tsx`, `InhaltsverzeichnisBlatt.tsx`),
-sind ungeprüft. `jsdom` plus ein paar Render-Tests wären der billigste
-Zugewinn an Sicherheit.
+### 4. UI ist getestet (30.09., dritte Runde)
+`vite.config.ts` fährt jetzt zwei getrennte Projekte: `domaene` (Node,
+`tests/*.test.ts`) und `oberflaeche` (jsdom, `tests/ui/**/*.test.tsx`, mit
+`tests/ui/setup.ts`). Erste Render-Tests decken Tabellenblatt,
+Inhaltsverzeichnis-Blatt und Fehlergrenze ab. Offen bleibt: mehr Komponenten
+(`Ueben.tsx`, `Pruefung.tsx`, `Tabellen.tsx`, `KiWerkstatt.tsx`) direkt
+rendern – die Blaetter sind erst der Anfang.
 
-### 5. Kein Error Boundary
-`main.tsx` rendert `App` inzwischen in `Fehlergrenze` – die Fehlergrenze
-existiert und fängt Renderfehler ab. Offen: eigene Render-Tests für die
-Oberfläche (siehe 4).
+### 5. Fehlergrenze mit Render-Test (30.09., dritte Runde)
+`main.tsx` rendert `App` in `Fehlergrenze`; ein Test in
+`tests/ui/blaetter.test.tsx` löst einen echten Renderwurf aus und prüft, dass
+statt einer leeren Seite die verständliche Ansicht erscheint.
 

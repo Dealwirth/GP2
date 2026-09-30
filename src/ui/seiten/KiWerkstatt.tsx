@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { Task } from '../../domain/types.ts';
 import { ATOME, KAPITEL, holeAtom } from '../../content/curriculum/index.ts';
 import { erzeugeAufgaben } from '../../ai/generator.ts';
+import { selbsttest, type SelbsttestErgebnis } from '../../ai/selbsttest.ts';
 import { merkeAufgaben } from '../../tasks/ablage.ts';
 import { startSitzung } from '../../tasks/session.ts';
 import { aiEinstellungenAus } from '../einstellungen.ts';
@@ -34,6 +35,30 @@ export function KiWerkstatt(props: { store: Store; wechsle: (s: SeitenName) => v
   const [ergebnis, setErgebnis] = useState<Task[]>([]);
   const [verworfen, setVerworfen] = useState<{ grund: string; vorschlag: string }[]>([]);
   const [meldung, setMeldung] = useState<string | null>(null);
+  const [test, setTest] = useState<SelbsttestErgebnis | null>(null);
+  const [testLaeuft, setTestLaeuft] = useState(false);
+
+  const teste = async (): Promise<void> => {
+    setTestLaeuft(true);
+    setTest(null);
+    try {
+      setTest(await selbsttest(ai, AbortSignal.timeout(90_000)));
+    } catch (fehler) {
+      setTest({
+        ok: false,
+        modell: ai.modell,
+        stufen: [
+          {
+            name: 'Aufbau',
+            ok: false,
+            detail: fehler instanceof Error ? fehler.message : 'Unbekannter Fehler.',
+          },
+        ],
+      });
+    } finally {
+      setTestLaeuft(false);
+    }
+  };
 
   const kapitel = useMemo(() => {
     return KAPITEL.map((k) => ({
@@ -146,11 +171,44 @@ export function KiWerkstatt(props: { store: Store; wechsle: (s: SeitenName) => v
           <button disabled={laeuft || !thema} onClick={() => void erzeugen()}>
             {laeuft ? 'Erzeugt …' : 'Aufgaben erzeugen'}
           </button>
-          <button disabled={laeuft} onClick={() => void pruefeVerbindung(ai)}>
-            Verbindung prüfen
+          <button disabled={testLaeuft || !ai.aktiv} onClick={() => void teste()}>
+            {testLaeuft ? 'Prüft …' : 'KI-Selbsttest'}
           </button>
         </div>
+        <p className="klein">
+          Der Selbsttest prüft die ganze Kette – Verbindung, Vorschlag, Rechnung,
+          Validierung – und zeigt je Stufe, was zurückkommt. Damit siehst du
+          sofort, ob die KI wirklich Aufgaben liefert oder wo es hakt.
+        </p>
       </section>
+
+      {test && (
+        <section className="karte">
+          <div className="prKopf">
+            <span className="prTitel">
+              KI-Selbsttest · {test.ok ? 'bestanden' : 'nicht bestanden'}
+            </span>
+            <span className="prGewicht">{test.modell}</span>
+          </div>
+          {test.stufen.map((s) => (
+            <div key={s.name} className="zeile">
+              <span className={s.ok ? 'okText' : 'frist dringend'}>{s.ok ? '✓' : '✗'} {s.name}</span>
+              <span className="klein lueckText">{s.detail}</span>
+            </div>
+          ))}
+          {test.task && (
+            <>
+              <p className="klein">
+                Beispielaufgabe: {test.task.proposal.prompt}
+              </p>
+              <p className="klein">
+                Optionen: {test.task.proposal.options?.map((o) => o.text).join(' | ')} · richtig:{' '}
+                {test.task.correctOptionId}
+              </p>
+            </>
+          )}
+        </section>
+      )}
 
       {meldung && <p className="warnung">{meldung}</p>}
 

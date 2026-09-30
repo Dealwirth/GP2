@@ -7,7 +7,7 @@ import {
   STANDARDEINSTELLUNGEN,
   type Einstellungen,
 } from '../einstellungen.ts';
-import { STANDARD_MODELLE } from '../../ai/client.ts';
+import { STANDARD_MODELLE, STANDARD_MODELL } from '../../ai/client.ts';
 import { speichereErgebnisse } from '../../storage/ergebnisse.ts';
 import type { Store } from '../store.ts';
 
@@ -139,7 +139,7 @@ export function Einstellungen(props: { store: Store }) {
         <label className="eingabeZeile">
           <span>Modell</span>
           <select
-            value={store.einstellungen.modelle[0] ?? 'openai/gpt-oss-120b'}
+            value={store.einstellungen.modelle[0] ?? STANDARD_MODELL}
             onChange={(e) => aendern({ modelle: [e.target.value, ...store.einstellungen.modelle.slice(1)] })}
           >
             {Object.entries(STANDARD_MODELLE).map(([kurz, id]) => (
@@ -150,10 +150,11 @@ export function Einstellungen(props: { store: Store }) {
           </select>
         </label>
         <p className="klein">
-          Standard: GPT-OSS 120b – präzise bei Rechenaufgaben. GPT-OSS 20b ist
-          der schnelle Ausweich; Qwen 3.8 27b, falls ein Modell gerade nicht
-          liefert. Steht ein Modell nicht mehr zur Verfügung, sagt das der
-          Verbindungstest unten – dann hier einfach umschalten.
+          Standard ist Qwen 3.8 27b – es liefert das strenge Aufgabenschema
+          zuverlässig. Die GPT-OSS-Modelle sind schneller, verbrauchen aber
+          einen Teil ihres Budgets für den Denkweg und fallen beim Schema
+          häufiger aus. Steht ein Modell nicht mehr zur Verfügung, sagt das
+          der Selbsttest unten – dann hier einfach umschalten.
         </p>
 
         <p className={`klein ${kiBereit(store.einstellungen) ? 'okText' : 'frist dringend'}`}>

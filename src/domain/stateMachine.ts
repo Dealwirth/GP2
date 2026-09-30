@@ -37,8 +37,6 @@ export function naechsterZustand(
       return 'gesehen';
     case 'ueberfaellig':
       return 'ueberfaellig';
-    case 'laborErfolg':
-      return aktuell;
   }
 }
 

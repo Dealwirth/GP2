@@ -182,8 +182,7 @@ export type LernEreignis =
   | { type: 'richtig' }
   | { type: 'falsch' }
   | { type: 'geraten' }
-  | { type: 'ueberfaellig' }
-  | { type: 'laborErfolg' };
+  | { type: 'ueberfaellig' };
 
 export interface TopicStateRecord {
   topicId: string;

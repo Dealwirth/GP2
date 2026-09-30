@@ -390,14 +390,15 @@ export function bauePhasenplan(start = new Date(), pruefung = '2027-06-07'): Ler
     },
     {
       id: 'praxis',
-      titel: 'Praxis laborüben',
+      titel: 'Kundenauftrag üben',
       schwerpunkt:
-        'Stromlaufplan, Messprotokoll, Fehlersuche und das Fachgespräch. ' +
-        'Hier zählt Verlässlichkeit, nicht Schnelligkeit.',
+        'Planung gegen die Engine, Arbeit nach den fünf Sicherheitsregeln, ' +
+        'Prüf- und Messergebnisse und das Fachgespräch. Hier zählt ' +
+        'Verlässlichkeit, nicht Schnelligkeit.',
       zielMinutenProWoche: 180,
       abschlussKriterium:
-        'Jede Laborstation fehlerfrei durchlaufen, ein vollständiges ' +
-        'Prüfprotokoll ohne Fehler erstellt.',
+        'Einen vollständigen Kundenauftrag ohne Fehler durchlaufen und die ' +
+        'Fachfragen sicher beantworten.',
       bereich: 'Kundenauftrag',
     },
     {
