@@ -122,14 +122,6 @@ export function rechne(rezept: Rezept): AufgeloesteRechnung {
   }
 }
 
-/** Zerlegt eine Option in ihre erste erkennbare Zahl. */
-function zahlAusOption(text: string): number | null {
-  const treffer = text.match(/-?\d+([.,]\d+)?/);
-  if (!treffer) return null;
-  const wert = Number(treffer[0].replace(',', '.'));
-  return Number.isFinite(wert) ? wert : null;
-}
-
 /**
  * Übersetzt Vorsätze in den Faktor zur Grundeinheit.
  *
@@ -147,11 +139,35 @@ const VORSAETZE: Record<string, number> = {
   M: 1e6,
 };
 
-/** Liefert den ersten Vorsatz direkt hinter der Zahl, falls einer dasteht. */
-function vorsatzFaktor(text: string): number {
-  const treffer = text.match(/-?\d+(?:[.,]\d+)?\s*([pnuµmkM])(?=[A-Za-zΩΩ]|$)/);
-  if (!treffer) return 1;
-  return VORSAETZE[treffer[1] ?? ''] ?? 1;
+/**
+ * Zerlegt eine Einheit in Vorsatz und Grundzeichen.
+ *
+ * Der Vorsatz wird VOR dem Kleinschreiben gelesen: „M" ist Mega (10⁶), „m"
+ * ist Milli (10⁻³). Würde zuerst kleingeschrieben, wäre „MΩ" plötzlich
+ * Milliohm – ein Faktor 10⁹ daneben.
+ */
+function einheitInfo(roh: string): { vorsatz: number; basis: string } {
+  let rest = roh.trim();
+  let vorsatz = 1;
+  if (rest.length >= 2 && VORSAETZE[rest[0]!] !== undefined) {
+    vorsatz = VORSAETZE[rest[0]!]!;
+    rest = rest.slice(1);
+  }
+  return { vorsatz, basis: rest.toLowerCase().replace(/[µu]/, 'u') };
+}
+
+/** Zerlegt eine Option in Zahl, Vorsatz und Grundzeichen der Einheit. */
+function zerlegeOption(text: string): { zahl: number | null; vorsatz: number; einheit: string } {
+  const treffer = text.match(/(-?\d+(?:[.,]\d+)?)\s*([a-zA-ZµΩΩ%]*)/);
+  if (!treffer) return { zahl: null, vorsatz: 1, einheit: '' };
+
+  const zahl = Number(treffer[1]!.replace(',', '.'));
+  const info = einheitInfo(treffer[2] ?? '');
+  return {
+    zahl: Number.isFinite(zahl) ? zahl : null,
+    vorsatz: info.vorsatz,
+    einheit: info.basis,
+  };
 }
 
 /** Zeichen, die eine Einheit tragen – Buchstaben, Ohm- und Prozentzeichen. */
@@ -160,28 +176,23 @@ const EINHEIT_ZEICHEN = /[A-Za-zΩωΩ%]/;
 /**
  * Entspricht die Einheit der Option der erwarteten?
  *
- * Die frühere Fassung ließ den Einheitenvergleich offen – ein Kommentar stand
- * dort, wo die Prüfung hätte stehen müssen. Folge: „166,7 mA" galt als
- * richtige Antwort auf ein Ergebnis in Ω. Bei einem Prüfungstrainer ist das
- * ein falsches Lob, und das ist schlimmer als eine Ablehnung.
+ * Verglichen wird das Grundzeichen ohne Vorsatz: „1 kΩ" trägt die Einheit „Ω"
+ * und passt damit auf ein Ergebnis in „MΩ". Die Größenordnung steckt im
+ * Vorsatz und wird über den Zahlenwert geprüft – dort, wo sie hingehört.
  *
- * Verglichen wird buchstabenweise, ohne Vorsatz und Kleinschreibung: „0,3 A"
- * passt damit auf die Engine-Einheit „A" ebenso wie auf „a", „166,7 Ω" auf
- * „Ω". Toleranz gibt es nur dort, wo sie nichts verdeckt: Steht in der Option
- * gar keine Einheit, wird sie akzeptiert – eine reine Zahl ist keine falsche
- * Aussage über die Einheit.
+ * Steht in der Option gar keine Einheit, wird sie akzeptiert: Eine reine Zahl
+ * ist keine falsche Aussage über die Einheit.
  */
 function einheitPasst(text: string, einheit: string): boolean {
-  const erwartet = einheit.trim().toLowerCase().replace(/[µu]/, 'u');
-  if (!erwartet || !EINHEIT_ZEICHEN.test(erwartet)) return true;
+  const erwartet = einheitInfo(einheit);
+  if (!erwartet.basis || !EINHEIT_ZEICHEN.test(erwartet.basis)) return true;
 
-  // Nur der Zahlenteil und das unmittelbar Folgende zählen: „21 A pro Leiter"
-  // soll auf „A" passen, „21 V" aber nicht.
-  const treffer = text.match(/-?\d+(?:[.,]\d+)?\s*([A-Za-zΩΩ%µu]*)/);
-  const roh = (treffer?.[1] ?? '').toLowerCase().replace(/[µu]/, 'u');
-  if (roh === '') return true;
-  const ohneVorsatz = roh.length > 1 ? roh.slice(1) : roh;
-  return ohneVorsatz.startsWith(erwartet) || roh.startsWith(erwartet);
+  const { einheit: gefunden } = zerlegeOption(text);
+  if (gefunden === '') return true;
+
+  // Ohm wird als Ω, als Ω oder ausgeschrieben geschrieben.
+  const norm = (s: string): string => s.replace(/[ωΩ]|ohm/g, 'ω');
+  return norm(gefunden) === norm(erwartet.basis);
 }
 
 export interface Optionsabgleich {
@@ -203,14 +214,16 @@ export function gleicheOptionenAb(
   ergebnis: { wert: number },
   einheit?: string,
 ): Optionsabgleich {
-  const toleranz = Math.max(Math.abs(ergebnis.wert) * 0.005, 0.05);
+  // Beide Seiten in die Grundeinheit bringen: Die Engine nennt „1 MΩ", die
+  // Option vielleicht „1000 kΩ". Erst nach dem Auflösen der Vorsätze sind
+  // die Zahlen vergleichbar.
+  const basisErwartet = ergebnis.wert * einheitInfo(einheit ?? '').vorsatz;
+  const toleranz = Math.max(Math.abs(basisErwartet) * 0.005, 0.05);
   const passende = optionen
     .filter((o) => {
-      const zahl = zahlAusOption(o.text);
+      const { zahl, vorsatz } = zerlegeOption(o.text);
       if (zahl === null) return false;
-      // Vorsätze auflösen: „300 mA" ist derselbe Wert wie „0,3 A".
-      const wert = zahl * vorsatzFaktor(o.text);
-      if (Math.abs(wert - ergebnis.wert) > toleranz) return false;
+      if (Math.abs(zahl * vorsatz - basisErwartet) > toleranz) return false;
       return einheit === undefined || einheitPasst(o.text, einheit);
     })
     .map((o) => o.id);

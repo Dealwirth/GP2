@@ -64,9 +64,22 @@ type Entwurf = TaskBausatz;
 /**
  * Baut einen vorläufigen Task, damit die Zweitprüfung etwas zu prüfen bekommt.
  * Dieser Task wird nie verwendet – er existiert nur als Prüfgegenstand.
+ *
+ * Scheitert schon der Entwurf an der Validierung (etwa weil der Vorschlag eine
+ * Zahl erfindet, die an keinem Fakt hängt), wird der Grund zurückgegeben statt
+ * geworfen. Sonst reißt ein einziger schlechter Vorschlag die ganze Runde mit,
+ * und von drei angeforderten Aufgaben kommt keine einzige an.
  */
-function entwurfAlsTask(entwurf: Entwurf): Task {
-  return baueTask({ ...entwurf, validierungsOptionen: { duplikatPruefen: false } });
+function entwurfAlsTask(
+  entwurf: Entwurf,
+): { task: Task } | { grund: string } {
+  try {
+    return {
+      task: baueTask({ ...entwurf, validierungsOptionen: { duplikatPruefen: false } }),
+    };
+  } catch (fehler) {
+    return { grund: fehler instanceof Error ? fehler.message : 'Validierung fehlgeschlagen.' };
+  }
 }
 
 function baueTaskAusVorschlag(
@@ -196,8 +209,14 @@ export async function erzeugeAufgaben(
     // Die Zweitprüfung läuft vor dem Bauen, damit ihr Urteil Teil des
     // Validierungsprotokolls der Aufgabe wird und die Aufgabe bei einem
     // Beanstanden gar nicht erst entsteht.
+    const entwurfTask = entwurfAlsTask(versuch.entwurf);
+    if ('grund' in entwurfTask) {
+      verworfen.push({ grund: entwurfTask.grund, vorschlag: roh.prompt.slice(0, 120) });
+      continue;
+    }
+
     const zweitpruefung = einstellungen.zweitpruefung
-      ? await zweitpruefe(einstellungen, entwurfAlsTask(versuch.entwurf), signal)
+      ? await zweitpruefe(einstellungen, entwurfTask.task, signal)
       : { bestanden: true, detail: 'Zweitprüfung abgeschaltet.' };
 
     try {

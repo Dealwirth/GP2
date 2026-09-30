@@ -110,6 +110,76 @@ describe('Optionsabgleich', () => {
     expect(a.korrektOptionId).toBeNull();
     expect(a.passende).toHaveLength(0);
   });
+
+  it('erkennt einen kΩ-Wert auf ein Ergebnis in MΩ', () => {
+    // Der Fall, an dem die Erzeugung scheiterte: Die Engine rechnet in MΩ
+    // (1 MΩ), die Option nennt denselben Wert in kΩ (1000 kΩ). Beide Zahlen
+    // stimmen überein, sobald der Vorsatz aufgelöst wird.
+    const a = gleicheOptionenAb(
+      [
+        { id: 'a', text: '1 kΩ' },
+        { id: 'b', text: '1000 kΩ' },
+        { id: 'c', text: '0,5 MΩ' },
+      ],
+      { wert: 1 },
+      'MΩ',
+    );
+    expect(a.korrektOptionId).toBe('b');
+  });
+
+  it('erkennt den Wert, wenn die Option nur die Grundeinheit nennt', () => {
+    // „1000 kΩ" und „1 MΩ" sind derselbe Wert. Die Option darf in der
+    // Grundeinheit stehen, die Engine rechnet in der größeren.
+    const a = gleicheOptionenAb(
+      [{ id: 'a', text: '1000000 Ω' }],
+      { wert: 1 },
+      'MΩ',
+    );
+    expect(a.korrektOptionId).toBe('a');
+  });
+
+  it('lehnt eine fremde Einheit trotz passender Zahl ab', () => {
+    // „1 V" ist keine gültige Antwort auf ein Ergebnis in MΩ – auch wenn die
+    // Zahl stimmt. Das ist der Fehler, den der Einheitenvergleich verhindert.
+    const a = gleicheOptionenAb(
+      [
+        { id: 'a', text: '1 V' },
+        { id: 'b', text: '1 A' },
+      ],
+      { wert: 1 },
+      'MΩ',
+    );
+    expect(a.korrektOptionId).toBeNull();
+    expect(a.passende).toHaveLength(0);
+  });
+
+  it('erkennt mA auf ein Ergebnis in A', () => {
+    const a = gleicheOptionenAb(
+      [
+        { id: 'a', text: '16 A' },
+        { id: 'b', text: '160 mA' },
+        { id: 'c', text: '1,6 A' },
+      ],
+      { wert: 16 },
+      'A',
+    );
+    expect(a.korrektOptionId).toBe('a');
+  });
+
+  it('erkennt mΩ auf ein Ergebnis in Ω', () => {
+    const a = gleicheOptionenAb(
+      [
+        { id: 'a', text: '400 mΩ' },
+        { id: 'b', text: '0,4 Ω' },
+        { id: 'c', text: '4 Ω' },
+      ],
+      { wert: 0.4 },
+      'Ω',
+    );
+    // Beide Optionen sind derselbe Wert – das ist mehrdeutig und muss auffallen.
+    expect(a.korrektOptionId).toBeNull();
+    expect(a.passende).toHaveLength(2);
+  });
 });
 
 describe('Aufgabengenerierung mit KI', () => {
