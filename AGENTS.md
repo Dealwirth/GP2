@@ -76,11 +76,34 @@ Teilweise geschlossen am 30.09.:
   0100-600 für die ortsfeste Anlage).
 
 Weiterhin offen:
-- Die Prüfschritte der **Geräteprüfung** selbst (Schutzleiterwiderstand,
-  Riso, Ersatzableitstrom, Funktion) fehlen in `pruefprotokoll.ts` – der
-  Bestand dort ist die Anlagenprüfung.
-- `kundenauftrag.ts` hat drei Szenarien (Wärmepumpe, Wallbox, PV) – alle
-  sind *Installationen*, keine *Wiederholungsprüfung eines Betriebsmittels*.
+- ~~Die Prüfschritte der **Geräteprüfung** selbst ... fehlen in
+  `pruefprotokoll.ts`~~ → **geschlossen 30.09.**: `GERAET_SCHRITTE`
+  (Sichtprüfung, Schutzleiterwiderstand, Riso, Ersatzableitstrom, Funktion),
+  `PRUEFSCHRITTE_NACH_ART`, `Pruefart`, `bewerteProtokoll(eintraege, art)`,
+  `leeresProtokoll(…, art)` und `musterProtokoll(art)` (mit eingebauten
+  Fehlern). Die Geräte-Grenzwerte stehen als Fakten in `schutz.ts`
+  (`pe-widerstand-geraet` 0,3 Ω, `riso-geraet-sk1` 1 MΩ,
+  `schutzleiterstrom-geraet` 3,5 mA, `beruehrungsstrom-geraet` 0,5 mA).
+  In der UI schaltet `Labor.tsx` über einen Reiter Anlage ↔ Gerät um; jeder
+  Reiter hält sein eigenes Protokoll (`messprotokoll-anlage` / `-geraet`).
+- ~~`kundenauftrag.ts` hat drei Szenarien ... alle sind Installationen~~
+  → **geschlossen 30.09.**: viertes Szenario `geraetepruefung`
+  (Wiederholungsprüfung nach DIN VDE 0702, ausdrücklich ohne Rechen-Engine –
+  es ist normbasiert und wird über die Fakten geprüft).
+
+Fachliche Korrekturen am 30.09. (gegen die Engine/Faktenbasis geprüft):
+- Wallbox-Szenario: `I_z = 4 mm²` war als 25,5 A angegeben, die Faktenbasis
+  führt 28 A (Verlegeart C). Verlegeart von A1 auf C korrigiert und die
+  Dimensionierung auf den tatsächlich zulässigen Mindestquerschnitt 2,5 mm²
+  (I_z = 21 A, B 20 A) umgestellt; 4 mm² bleibt als klügere Reserve im
+  Hinblick auf die zweite Wallbox in der Begründung erwähnt.
+- PV-Szenario: 4 mm² mit 25,5 A angegeben → 28 A korrigiert; die AC-Absicherung
+  benennt jetzt ausdrücklich 10 mm² + B 50 A.
+- Wärmepumpe: Betriebsstrom im Text 25,2 A → 25,1 A; Spannungsfall-Antwort
+  „0,98 %“ → „1,1 %“ (Engine: 1,06 %).
+- Tests: `tests/kundenauftrag.test.ts` prüft jetzt, dass die genannten
+  I_z-Werte mit `strombelastbarkeit` übereinstimmen und dass die
+  Geräte-Szenario-Grenzwerte in der Faktenbasis stehen.
 
 ### 2. KI-Erzeugung ist intermittierend (Produktkern wackelt)
 Gemessen an Läufen: 1–3 Aufgaben, teils 0. `erzeugeAufgaben` hat **einen**

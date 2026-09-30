@@ -105,7 +105,7 @@ const SZENARIO_WAERMEPUMPE: AuftragsSzenario = {
       id: 'p-strom',
       frage: 'Welchen Betriebsstrom zieht die Wärmepumpe (cos φ = 0,92)?',
       optionen: [
-        { text: 'etwa 25,2 A', korrekt: true, begruendung: 'I = P/(√3·U·cos φ) = 16000/(1,732·400·0,92)' },
+        { text: 'etwa 25,1 A', korrekt: true, begruendung: 'I = P/(√3·U·cos φ) = 16000/(1,732·400·0,92)' },
         { text: 'etwa 43,5 A', korrekt: false, begruendung: 'Das wäre die Rechnung ohne √3 (einphasig gerechnet).' },
         { text: 'etwa 16,0 A', korrekt: false, begruendung: 'Das wäre die Leistung als Strom bei 1000 V gelesen.' },
       ],
@@ -117,37 +117,37 @@ const SZENARIO_WAERMEPUMPE: AuftragsSzenario = {
       id: 'p-querschnitt',
       frage: 'Ist NYM-J 5×6 mm² ausreichend dimensioniert?',
       optionen: [
-        { text: 'Ja – I_z = 36 A > 25,2 A, mit Reservetraum', korrekt: true, begruendung: 'Verlegeart C, 6 mm² Cu → 36 A' },
+        { text: 'Ja – I_z = 36 A > 25,1 A, mit Reservetraum', korrekt: true, begruendung: 'Verlegeart C, 6 mm² Cu → 36 A' },
         { text: 'Nein – es braucht 10 mm²', korrekt: false, begruendung: '10 mm² wäre knapp überdimensioniert, 6 mm² trägt 36 A.' },
         { text: 'Ja, aber nur bei 20 °C', korrekt: false, begruendung: 'Keller ist bei 30 °C Referenz – der Wert gilt direkt.' },
       ],
       hintergrund:
-        '6 mm² Cu in Verlegeart C trägt 36 A. Bei 25,2 A Betriebsstrom bleibt ' +
+        '6 mm² Cu in Verlegeart C trägt 36 A. Bei 25,1 A Betriebsstrom bleibt ' +
         'eine Reservetraum von gut 40 % – Norm gerecht, wenn auch knapp bemessen.',
     },
     {
       id: 'p-absicherung',
       frage: 'Welche Absicherung gehört an den Anfang der Zuleitung?',
       optionen: [
-        { text: 'B 32 A – trägt dauerhaft, schützt 6 mm²', korrekt: true, begruendung: 'I_B ≤ I_n ≤ I_z: 25,2 ≤ 32 ≤ 36' },
+        { text: 'B 32 A – trägt dauerhaft, schützt 6 mm²', korrekt: true, begruendung: 'I_B ≤ I_n ≤ I_z: 25,1 ≤ 32 ≤ 36' },
         { text: 'B 40 A – passt zur Hauptsicherung', korrekt: false, begruendung: '40 A > 36 A – das Kabel wäre nicht geschützt.' },
         { text: 'C 32 A wegen Anlaufstrom', korrekt: false, begruendung: 'Elektronischer Anlauf braucht keine C-Kennlinie.' },
       ],
       hintergrund:
         'Der Drei-Satz der Leitungssicherung: I_B ≤ I_n ≤ I_z. B 32 A erfüllt ' +
-        'ihn (25,2 ≤ 32 ≤ 36). B 40 verletzt die zweite Grenze – das Kabel ' +
+        'ihn (25,1 ≤ 32 ≤ 36). B 40 verletzt die zweite Grenze – das Kabel ' +
         'trüge dauerhaft mehr, als es darf.',
     },
     {
       id: 'p-spannungsfall',
-      frage: 'Wie groß ist der Spannungsfall auf 28 m mit 6 mm² bei 25,2 A?',
+      frage: 'Wie groß ist der Spannungsfall auf 28 m mit 6 mm² bei 25,1 A?',
       optionen: [
-        { text: 'etwa 0,98 % – zulässig', korrekt: true, begruendung: 'ΔU% = 2·ρ·l·I/(A·U)·100' },
-        { text: 'etwa 3,4 % – gerade noch zulässig', korrekt: false, begruendung: 'Der Faktor 2 (Hin- und Rückleiter) fehlt in dieser Rechnung nicht, hier stimmt die Größenordnung nicht.' },
+        { text: 'etwa 1,1 % – zulässig', korrekt: true, begruendung: 'ΔU% = 2·ρ·l·I/(A·U)·100 = 1,06 %' },
+        { text: 'etwa 3,4 % – gerade noch zulässig', korrekt: false, begruendung: 'Diese Größenordnung wäre erst bei mehr als der dreifachen Leitungslänge zu erwarten.' },
         { text: 'etwa 5,1 % – unzulässig', korrekt: false, begruendung: 'Diese Höhe käme erst bei über 100 m Leitungslänge zustande.' },
       ],
       hintergrund:
-        'Mit ρ = 0,018, l = 28 m, I = 25,2 A, A = 6 mm², U = 400 V: 0,98 %. ' +
+        'Mit ρ = 0,018, l = 28 m, I = 25,1 A, A = 6 mm², U = 400 V: 1,06 %. ' +
         'Deutlich unter den üblichen 3–4 % Grenzwert – die Dimension passt ' +
         'auch vom Spannungsfall her.',
     },
@@ -224,7 +224,7 @@ const SZENARIO_WAERMEPUMPE: AuftragsSzenario = {
     {
       frage: 'Warum haben Sie 6 mm² gewählt – und was würde eine größere Verlegeart ändern?',
       erwartetePunkte: [
-        'I_B ≤ I_n ≤ I_z genannt (25,2 ≤ 32 ≤ 36)',
+        'I_B ≤ I_n ≤ I_z genannt (25,1 ≤ 32 ≤ 36)',
         'Verlegeart C als Bezug der I_z-Werte genannt',
         'Größerer Querschnitt: teurer, kein fachlicher Vorteil, Biegeradien im Klemmbereich',
       ],
@@ -253,9 +253,9 @@ const SZENARIO_WALLBOX: AuftragsSzenario = {
   titel: 'Kundenauftrag: Wallbox in der Garage',
   auftrag:
     'Garage am Haus, 11 kW Wallbox (3-phasig, 16 A, Typ 2). Leitungsweg ' +
-    'Verteiler–Garage 22 m, unter Putz (Verlegeart A1). Zur Auswahl stehen ' +
-    'NYM-J und NYY-J. Die Garage ist feucht (Fahrradstation, Wäsche). ' +
-    'Bestehende Anlage: Schleifenwiderstand 1,1 Ω.',
+    'Verteiler–Garage 22 m, im Installationsrohr an der Wand (Verlegeart C). ' +
+    'Zur Auswahl stehen NYM-J und NYY-J. Die Garage ist feucht (Fahrradstation, ' +
+    'Wäsche). Bestehende Anlage: Schleifenwiderstand 1,1 Ω.',
   bestand: [
     'Verteiler mit Reserve, B 16 A für Hausstromkreis vorhanden',
     'Leitungsweg durch Kellermauer und Garagenwand, 22 m',
@@ -294,16 +294,17 @@ const SZENARIO_WALLBOX: AuftragsSzenario = {
     },
     {
       id: 'p-querschnitt-wb',
-      frage: 'Welcher Querschnitt bei 22 m, Verlegeart A1, 16 A Betriebsstrom?',
+      frage: 'Welcher Querschnitt bei 22 m, Verlegeart C, 16 A Betriebsstrom?',
       optionen: [
-        { text: '2,5 mm² (I_z = 19,5 A) – reicht knapp', korrekt: false, begruendung: 'Zu knapp bemessen, und der Spannungsfall auf 22 m wäre grenzwertig.' },
-        { text: '4 mm² (I_z = 25,5 A) – Dimension mit Reservetraum', korrekt: true, begruendung: '16 ≤ 20 ≤ 25,5 mit B 20 A, Spannungsfall bleibt unter 1 %.' },
-        { text: '1,5 mm² reicht bei 16 A', korrekt: false, begruendung: 'I_z = 13,5 A < 16 A – das Kabel wird überlastet.' },
+        { text: '2,5 mm² (I_z = 21 A, B 20 A) – reicht', korrekt: true, begruendung: '16 ≤ 20 ≤ 21 – der Drei-Satz ist erfüllt; der Spannungsfall bleibt mit rund 1,3 % im Rahmen.' },
+        { text: '4 mm² – nötig, weil 2,5 mm² den Spannungsfall nicht einhält', korrekt: false, begruendung: '2,5 mm² hält auf 22 m rund 1,3 % Spannungsfall ein – 4 mm² ist für 16 A nicht nötig.' },
+        { text: '1,5 mm² reicht bei 16 A', korrekt: false, begruendung: 'I_z = 15,5 A < 16 A – das Kabel wird überlastet.' },
       ],
       hintergrund:
         'Der Drei-Satz entscheidet, nicht das Bauchgefühl: I_B (16) ≤ I_n (20) ' +
-        '≤ I_z (25,5). 4 mm² erfüllt alle drei – 2,5 mm² scheitert an der ' +
-        'Reserve und am Spannungsfall.',
+        '≤ I_z (21). 2,5 mm² erfüllt ihn. Dass 4 mm² im Hinblick auf die ' +
+        'gewünschte zweite Wallbox klüger wäre, gehört als Begründung ins ' +
+        'Fachgespräch – es ist aber keine Bedingung für 16 A.',
     },
     {
       id: 'p-rcd-wb',
@@ -380,6 +381,165 @@ const SZENARIO_WALLBOX: AuftragsSzenario = {
   ],
 };
 
+const SZENARIO_GERAETEPRUEFUNG: AuftragsSzenario = {
+  id: 'geraetepruefung',
+  titel: 'Kundenauftrag: Wiederholungsprüfung der Werkstattgeräte',
+  auftrag:
+    'In der Lehrwerkstatt sind die ortsveränderlichen Betriebsmittel nach ' +
+    'DIN VDE 0702 wiederkehrend zu prüfen. Auf dem Tisch liegt eine ' +
+    'Handbohrmaschine (Schutzklasse I, 230 V, 900 W, 3 m Anschlussleitung). ' +
+    'Die Prüffrist beträgt ein Jahr (DGUV Vorschrift 3). Vorgesehen ist, das ' +
+    'Gerät nach der Messreihe wieder freizugeben.',
+  bestand: [
+    'Handbohrmaschine SK I mit metallischem Gehäuse und Kunststoffgriff',
+    'Anschlussleitung 3 m, Stecker mit Schutzleiterkontakt (Schuko)',
+    'Prüfplakette vom Vorjahr, Prüffrist abgelaufen',
+    'Isolierstoffgehäuse der Bohrmaschine weist einen Kratzer auf, der das Metall darunter zeigt',
+  ],
+  kundenAngaben: [
+    'Das Gerät wird täglich mehrere Stunden mit wechselnden Bohreinsätzen benutzt',
+    'Die Anschlussleitung wurde im Vorjahr bereits einmal gekürzt',
+    'Das Metallgehäuse wird im Betrieb berührt',
+  ],
+  planungsschritte: [
+    {
+      id: 'p-geraet-anlass',
+      frage: 'Welche Norm und welcher Anlass gilt für diese Prüfung?',
+      optionen: [
+        { text: 'DIN VDE 0702 – Wiederholungsprüfung im Betrieb', korrekt: true, begruendung: '0702 prüft wiederkehrend, ohne dass das Gerät verändert wurde.' },
+        { text: 'DIN VDE 0701 – nach Instandsetzung oder Änderung', korrekt: false, begruendung: '0701 gilt nach einer Reparatur oder Änderung. Das Gerät ist unverändert.' },
+        { text: 'DIN VDE 0100-600 – Erstprüfung der Anlage', korrekt: false, begruendung: '0100-600 prüft die ortsfeste Anlage, nicht das einzelne Gerät.' },
+      ],
+      hintergrund:
+        '0701 und 0702 haben denselben Messumfang, aber einen anderen Anlass. ' +
+        'Die Wiederholungsprüfung nach 0702 ist planmäßig – nicht nach einem ' +
+        'Schaden und nicht nach einer Reparatur.',
+    },
+    {
+      id: 'p-geraet-schutzklasse',
+      frage: 'Was bedeutet Schutzklasse I an diesem Gerät für die Prüfung?',
+      optionen: [
+        { text: 'Ein Schutzleiter ist vorhanden und muss geprüft werden', korrekt: true, begruendung: 'Bei SK I sind Schutzleiterwiderstand und Schutzleiterstrom Pflichtmessungen.' },
+        { text: 'Es ist doppelt isoliert, ein Schutzleiter ist nicht nötig', korrekt: false, begruendung: 'Das wäre Schutzklasse II – dort gibt es keinen Schutzleiter.' },
+        { text: 'Es wird mit Schutzkleinspannung betrieben', korrekt: false, begruendung: 'Das wäre Schutzklasse III – 24 V statt 230 V.' },
+      ],
+      hintergrund:
+        'Die Schutzklasse entscheidet, welche Messungen überhaupt nötig sind: ' +
+        'SK I hat einen Schutzleiter, also wird er gemessen. SK II hätte keinen – ' +
+        'dort wäre der Schutzleiterwiderstand keine sinnvolle Messung.',
+    },
+    {
+      id: 'p-geraet-gefahr',
+      frage: 'Am Gehäuse ist die Isolierung bis auf das Metall durchgescheuert. Wie bewerten Sie das?',
+      optionen: [
+        { text: 'Sicherheitsmangel – Gerät wird der Benutzung entzogen, unabhängig von den Messwerten', korrekt: true, begruendung: 'Die Sichtprüfung steht in der Norm vor jeder Messung; ein solcher Mangel ist auch bei guten Messwerten ein Durchfallen.' },
+        { text: 'Unkritisch, solange der Schutzleiterwiderstand stimmt', korrekt: false, begruendung: 'Der Schutzleiter ist Rückfallschutz, nicht der erste Schutz. Blanke berührbare Stellen sind ein Mangel.' },
+        { text: 'Erst im nächsten Jahr nachsehen', korrekt: false, begruendung: 'Ein festgestellter Mangel wird sofort behoben oder das Gerät gesperrt.' },
+      ],
+      hintergrund:
+        'Die Reihenfolge in der Norm ist: Besichtigen, dann messen. Die ' +
+        'Sichtprüfung kann ein Gerät schon vor jeder Messung aus dem Verkehr ' +
+        'ziehen – das ist keine Formsache.',
+    },
+    {
+      id: 'p-geraet-grenzwerte',
+      frage: 'Welche Grenzwerte gelten für SK I an diesem Gerät?',
+      optionen: [
+        { text: 'Schutzleiterwiderstand ≤ 0,3 Ω, Isolation ≥ 1 MΩ, Ableitstrom ≤ 3,5 mA', korrekt: true, begruendung: 'Die drei Werte für SK I bei einer Anschlussleitung bis 5 m.' },
+        { text: 'Schutzleiterwiderstand ≤ 1 Ω, Isolation ≥ 0,25 MΩ, Ableitstrom ≤ 10 mA', korrekt: false, begruendung: 'Das sind gemischte Werte der SK III bzw. Heizgeräte-Ausnahmen, nicht SK I.' },
+        { text: 'Schutzleiterwiderstand ≤ 0,3 Ω, Isolation ≥ 2 MΩ, Ableitstrom ≤ 0,5 mA', korrekt: false, begruendung: '2 MΩ und 0,5 mA gelten für SK II, nicht für SK I.' },
+      ],
+      hintergrund:
+        'Die Grenzwerte hängen an der Schutzklasse. Für SK I mit kurzer ' +
+        'Anschlussleitung: 0,3 Ω, 1 MΩ, 3,5 mA. Bei längeren Leitungen wächst ' +
+        'der Schutzleiterwiderstand um 0,1 Ω je weitere 7,5 m, bis höchstens 1 Ω.',
+    },
+  ],
+  ausfuehrung: [
+    {
+      id: 'a-freischalten-geraet',
+      titel: 'Gerät vom Netz trennen',
+      inhalt:
+        'Stecker ziehen, Gerät gegen Wiedereinschalten sichern (nicht am Netz ' +
+        'lassen, nur weil es „nur“ ein Handgerät ist), Spannungsfreiheit am ' +
+        'Gerät feststellen.',
+      regel: 'DGUV Vorschrift 3 – die fünf Sicherheitsregeln',
+      folgeBeiUeberspringen: 'Arbeiten am unter Spannung stehenden Gerät ist ein sofortiges Ende der Prüfung.',
+    },
+    {
+      id: 'a-sicht-geraet',
+      titel: 'Sichtprüfung zuerst',
+      inhalt:
+        'Gehäuse auf Risse und blanke Stellen, Anschlussleitung auf Scheuerstellen, ' +
+        'Stecker und Zugentlastung, Kennzeichnung und Prüfplakette prüfen.',
+      regel: 'DIN VDE 0701-0702 – Besichtigen vor Messen',
+      folgeBeiUeberspringen: 'Ein übersehener Mangel an der Isolierung wird später als Messfehler gedeutet – Punkte weg.',
+    },
+    {
+      id: 'a-schutzleiter-geraet',
+      titel: 'Schutzleiterwiderstand messen',
+      inhalt:
+        'Zwischen Schutzleiterkontakt des Steckers und dem berührbaren ' +
+        'Metallgehäuse messen, Messstrom ≥ 200 mA, Wert ins Protokoll.',
+      regel: 'Grenzwert ≤ 0,3 Ω (bis 5 m Leitung)',
+      folgeBeiUeberspringen: 'Ohne diese Messung ist der Schutzleiter nicht nachgewiesen – Prüfung unvollständig.',
+    },
+    {
+      id: 'a-isolation-geraet',
+      titel: 'Isolationswiderstand messen',
+      inhalt:
+        'Mit 500 V DC zwischen Leiter und Gehäuse bzw. Schutzleiter messen, ' +
+        'am spannungsfreien Gerät.',
+      regel: 'Grenzwert ≥ 1 MΩ (SK I)',
+      folgeBeiUeberspringen: 'Der Nachweis der Isolierung fehlt – ohne ihn ist die Freigabe nicht zulässig.',
+    },
+    {
+      id: 'a-ableitstrom-geraet',
+      titel: 'Schutzleiter- bzw. Ersatzableitstrom messen',
+      inhalt:
+        'Ersatzableitstrom am spannungsfreien Gerät messen; alternativ ' +
+        'Schutzleiterstrom im Betrieb. Wert gegen 3,5 mA prüfen.',
+      regel: 'Grenzwert ≤ 3,5 mA (SK I)',
+      folgeBeiUeberspringen: 'Ohne Ableitstromnachweis bleibt unklar, ob das Gerät im Betrieb sicher ist.',
+    },
+    {
+      id: 'a-funktion-geraet',
+      titel: 'Funktionsprüfung und Dokumentation',
+      inhalt:
+        'Gerät einschalten, Lauf und Schalter prüfen, Prüfplakette mit Datum ' +
+        'und Frist anbringen, Ergebnis ins Prüfprotokoll und in die Geräteliste.',
+      regel: 'DGUV Vorschrift 3 – Prüfplakette und Dokumentation',
+      folgeBeiUeberspringen: 'Ohne Plakette und Eintrag gilt die Prüfung als nicht durchgeführt.',
+    },
+  ],
+  fachgespraech: [
+    {
+      frage: 'Warum ist die Sichtprüfung keine Formsache, obwohl sie keinen Messwert liefert?',
+      erwartetePunkte: [
+        'Sie steht in DIN VDE 0701-0702 vor jeder Messung',
+        'Ein Isolationsmangel kann trotz guter Messwerte bestehen (z. B. blanke Stelle)',
+        'Ein festgestellter Mangel sperrt das Gerät sofort',
+      ],
+    },
+    {
+      frage: 'Wie unterscheiden sich DIN VDE 0701 und 0702, und wann greift welche?',
+      erwartetePunkte: [
+        'Gleicher Messumfang, anderer Anlass',
+        '0701 nach Instandsetzung/Änderung, 0702 planmäßige Wiederholungsprüfung',
+        'Prüffristen und Dokumentation nach DGUV Vorschrift 3',
+      ],
+    },
+    {
+      frage: 'Warum ist der Ersatzableitstrom eine zulässige Alternative zum Schutzleiterstrom?',
+      erwartetePunkte: [
+        'Er wird am spannungsfreien Gerät gemessen – sicherer und einfacher',
+        'Gleicher Grenzwert (3,5 mA bzw. 1 mA/kW über 3,5 kW)',
+        'Nicht anwendbar bei Geräten mit Heizelementen, die negativ aufgefallen sind',
+      ],
+    },
+  ],
+};
+
 const SZENARIO_PV: AuftragsSzenario = {
   id: 'pv',
   titel: 'Kundenauftrag: PV-Wechselrichter anschließen',
@@ -415,12 +575,12 @@ const SZENARIO_PV: AuftragsSzenario = {
       id: 'p-pv-leitung',
       frage: 'Ist NYM-J 3×4 mm² für 43,5 A ausreichend?',
       optionen: [
-        { text: 'Nein – I_z = 25,5 A < 43,5 A, es braucht 10 mm² (I_z = 50 A)', korrekt: true, begruendung: 'Der Drei-Satz scheitert an der ersten Grenze.' },
-        { text: 'Ja, 4 mm² trägt 25 A und der Wechselrichter regelt runter', korrekt: false, begruendung: 'Dauerhaft 43,5 A auf 4 mm² ist eine Überlast – das Kabel wird warm.' },
+        { text: 'Nein – I_z = 28 A < 43,5 A, es braucht mindestens 10 mm² (I_z = 50 A)', korrekt: true, begruendung: '4 mm² trägt 28 A – die 43,5 A des einphasigen Wechselrichters sprengen die Grenze.' },
+        { text: 'Ja, 4 mm² trägt 28 A und der Wechselrichter regelt im Dauerbetrieb herunter', korrekt: false, begruendung: 'Der Wechselrichter gibt dauerhaft seine Nennleistung ab; auf 28 A ausgelegt wäre die Leitung überlastet.' },
         { text: 'Ja, weil der Wechselrichter nur kurz Vollast läuft', korrekt: false, begruendung: 'PV läuft stundenlang am Limit – das ist Dauerbetrieb.' },
       ],
       hintergrund:
-        '4 mm² in Verlegeart C trägt 25,5 A – weit unter den 43,5 A. Hier ' +
+        '4 mm² in Verlegeart C trägt 28 A – weit unter den 43,5 A. Hier ' +
         'wird die engste Stelle der Prüfung gerissen: Wer nur die DC-Seite ' +
         'rechnet, verliert die Leitung.',
     },
@@ -428,13 +588,14 @@ const SZENARIO_PV: AuftragsSzenario = {
       id: 'p-pv-absicherung',
       frage: 'Welche Absicherung auf der AC-Seite?',
       optionen: [
-        { text: 'B 50 A (I_B = 43,5 ≤ 50 ≤ 50)', korrekt: true, begruendung: 'Gerade noch erfüllt; in der Praxis nehmen Prüfer 63 A-Ableitung mit 10 mm².' },
+        { text: 'B 50 A auf 10 mm² (43,5 ≤ 50 ≤ 50)', korrekt: true, begruendung: 'Der Drei-Satz ist mit 10 mm² gerade erfüllt – I_B 43,5 ≤ I_n 50 ≤ I_z 50.' },
         { text: 'B 32 A, wie im Haus üblich', korrekt: false, begruendung: '32 A < 43,5 A – der Wechselrichter würde ständig abschalten.' },
         { text: 'Keine, der Wechselrichter schaltet selbst ab', korrekt: false, begruendung: 'Die Anlagenelektronik ersetzt keine Leitungsabsicherung.' },
       ],
       hintergrund:
-        'AC-seitig gilt der gleiche Drei-Satz. Dass hier 10 mm² plus 50 A ' +
-        'realistischer ist, gehört zur Begründung im Fachgespräch.',
+        'AC-seitig gilt der gleiche Drei-Satz. Mit 10 mm² (I_z = 50 A) und ' +
+        'B 50 A ist er gerade erfüllt; ein größerer Querschnitt schafft hier ' +
+        'den nötigen Abstand. Diese Begründung gehört ins Fachgespräch.',
     },
     {
       id: 'p-pv-rcd',
@@ -518,6 +679,7 @@ export const SZENARIEN: AuftragsSzenario[] = [
   SZENARIO_WAERMEPUMPE,
   SZENARIO_WALLBOX,
   SZENARIO_PV,
+  SZENARIO_GERAETEPRUEFUNG,
 ];
 
 export function holeSzenario(id: string): AuftragsSzenario | undefined {
@@ -614,12 +776,12 @@ export function szenarioRechnung(szenarioId: string): Record<string, RechenErgeb
   if (szenarioId === 'waermepumpe') {
     ergebnisse['p-strom'] = stromDrehstrom({ leistungW: 16000, uV: 400, cosPhi: 0.92 });
     ergebnisse['p-querschnitt'] = strombelastbarkeit({ querschnittMm2: 6, weg: 'referenz-iz' });
-    ergebnisse['p-spannungsfall'] = spannungsfall({ laengeM: 28, stromA: 25.2, querschnittMm2: 6, u0: 400 });
+    ergebnisse['p-spannungsfall'] = spannungsfall({ laengeM: 28, stromA: 25.1, querschnittMm2: 6, u0: 400 });
   }
   if (szenarioId === 'wallbox') {
     ergebnisse['p-w-strom'] = stromDrehstrom({ leistungW: 11000, uV: 400, cosPhi: 1 });
-    ergebnisse['p-querschnitt-wb'] = strombelastbarkeit({ querschnittMm2: 4, weg: 'referenz-iz' });
-    ergebnisse['p-spannungsfall-wb'] = spannungsfall({ laengeM: 22, stromA: 16, querschnittMm2: 4, u0: 400 });
+    ergebnisse['p-querschnitt-wb'] = strombelastbarkeit({ querschnittMm2: 2.5, weg: 'referenz-iz' });
+    ergebnisse['p-spannungsfall-wb'] = spannungsfall({ laengeM: 22, stromA: 16, querschnittMm2: 2.5, u0: 400 });
   }
   if (szenarioId === 'pv') {
     ergebnisse['p-pv-strom'] = stromEinphasig({ leistungW: 10000, uV: 230, cosPhi: 1 });

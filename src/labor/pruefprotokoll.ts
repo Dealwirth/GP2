@@ -21,7 +21,22 @@ export type PruefSchrittId =
   | 'schleifenwiderstand'
   | 'ausloesezeit'
   | 'fehlerstrom'
-  | 'spannungsfall';
+  | 'spannungsfall'
+  | 'geraet-sichtpruefung'
+  | 'geraet-schutzleiter'
+  | 'geraet-isolation'
+  | 'geraet-ableitstrom'
+  | 'geraet-funktion';
+
+/**
+ * Anlass der Prüfung.
+ *
+ * `anlage` ist die Prüfung der ortsfesten Anlage nach DIN VDE 0100-600,
+ * `geraet` die Prüfung eines elektrischen Betriebsmittels nach
+ * DIN VDE 0701-0702. Beide Anlässe haben eigene Schritte und eigene Grenzen;
+ * sie in einem Protokoll zu vermischen, wäre in der Prüfung ein Fehler.
+ */
+export type Pruefart = 'anlage' | 'geraet';
 
 /** Wie die Grenze zustande kommt. */
 export type GrenzHerkunft =
@@ -44,7 +59,7 @@ export interface PruefSchritt {
   punkte: number;
 }
 
-export const PRUEFSCHRITTE: PruefSchritt[] = [
+export const ANLAGE_SCHRITTE: PruefSchritt[] = [
   {
     id: 'durchgang-pe',
     titel: 'Durchgangsprüfung des Schutzleiters',
@@ -173,6 +188,118 @@ export const PRUEFSCHRITTE: PruefSchritt[] = [
 ];
 
 /**
+ * Prüfschritte der Geräteprüfung nach DIN VDE 0701-0702.
+ *
+ * Der wesentliche Unterschied zur Anlagenprüfung: Geprüft wird das
+ * Betriebsmittel, nicht die Anlage. Die Sichtprüfung steht am Anfang und hat
+ * kein Zahlenmaß; der Schutzleiterwiderstand bezieht sich auf die
+ * Anschlussleitung des Geräts, nicht auf die Zuleitung.
+ */
+export const GERAET_SCHRITTE: PruefSchritt[] = [
+  {
+    id: 'geraet-sichtpruefung',
+    titel: 'Sichtprüfung des Betriebsmittels',
+    messpunkt: 'Gehäuse, Anschlussleitung, Stecker, Zugentlastung, Kennzeichnung',
+    geraet: 'Auge – kein Messgerät',
+    grenze: {
+      art: 'konstant',
+      wert: 0,
+      einheit: 'Mängel',
+      beleg: 'Bewertung durch den Prüfer, kein Messwert',
+    },
+    einheitFaktor: 1,
+    einheit: 'Mängel',
+    richtung: 'obergrenze',
+    bewertung:
+      'Die Sichtprüfung steht in der Norm vor jeder Messung. Beschädigte ' +
+      'Isolierung, loser Stecker oder fehlende Zugentlastung sind ein Mangel, ' +
+      'auch wenn alle Messwerte stimmen. Gefundenes wird gezählt, nicht geschätzt.',
+    punkte: 2,
+  },
+  {
+    id: 'geraet-schutzleiter',
+    titel: 'Schutzleiterwiderstand der Anschlussleitung',
+    messpunkt: 'Schutzleiterkontakt des Netzsteckers – berührbares leitfähiges Teil',
+    geraet: 'Durchgangsprüfer mit Messstrom ≥ 200 mA',
+    grenze: { art: 'fakt', faktId: 'pe-widerstand-geraet' },
+    einheitFaktor: 1,
+    einheit: 'Ω',
+    richtung: 'obergrenze',
+    bewertung:
+      'Bis 5 m Anschlussleitung höchstens 0,3 Ω, für jede weitere 7,5 m 0,1 Ω ' +
+      'mehr, höchstens 1 Ω. Ein zu hoher Wert bedeutet: Der Schutzleiter kann im ' +
+      'Fehlerfall den Strom nicht sicher ableiten.',
+    punkte: 3,
+  },
+  {
+    id: 'geraet-isolation',
+    titel: 'Isolationswiderstand des Betriebsmittels',
+    messpunkt: 'Leiter gegen Gehäuse bzw. gegen den Schutzleiter',
+    geraet: 'Isolationsmessgerät, 500 V DC',
+    grenze: { art: 'fakt', faktId: 'riso-geraet-sk1' },
+    einheitFaktor: 1,
+    einheit: 'MΩ',
+    richtung: 'untergrenze',
+    bewertung:
+      'Bei Schutzklasse I mindestens 1 MΩ, bei Geräten mit Heizwicklung 0,3 MΩ, ' +
+      'bei Schutzklasse II 2 MΩ. Gemessen wird am spannungsfreien, vom Netz ' +
+      'getrennten Gerät.',
+    punkte: 3,
+  },
+  {
+    id: 'geraet-ableitstrom',
+    titel: 'Schutzleiter- bzw. Ersatzableitstrom',
+    messpunkt: 'Schutzleiter des Geräts im Betrieb bzw. Ersatzmessung am spannungsfreien Gerät',
+    geraet: 'Ableitstrom- bzw. Geräteprüfgerät',
+    grenze: { art: 'fakt', faktId: 'schutzleiterstrom-geraet' },
+    einheitFaktor: 1,
+    einheit: 'mA',
+    richtung: 'obergrenze',
+    bewertung:
+      'Höchstens 3,5 mA. Bei Geräten mit Heizelementen über 3,5 kW gilt 1 mA je ' +
+      'kW Heizleistung, höchstens 10 mA. Der Ersatzableitstrom ist das ' +
+      'Ersatzverfahren am spannungsfreien Gerät und wird mit demselben Grenzwert ' +
+      'bewertet.',
+    punkte: 4,
+  },
+  {
+    id: 'geraet-funktion',
+    titel: 'Funktionsprüfung des Betriebsmittels',
+    messpunkt: 'Das Gerät selbst – Funktion, Schalter, Schutzleiter am Gehäuse',
+    geraet: 'Das Betriebsmittel im Betrieb',
+    grenze: {
+      art: 'konstant',
+      wert: 0,
+      einheit: 'Mängel',
+      beleg: 'Bewertung durch den Prüfer, kein Messwert',
+    },
+    einheitFaktor: 1,
+    einheit: 'Mängel',
+    richtung: 'obergrenze',
+    bewertung:
+      'Die Funktion wird am Ende geprüft: Läuft das Gerät, schalten die ' +
+      'Schutzeinrichtungen, ist der Schutzleiter am Gehäuse wirksam? Ein Gerät, ' +
+      'das die Messungen besteht, aber nicht funktioniert, ist nicht bestanden.',
+    punkte: 2,
+  },
+];
+
+/** Alle Schritte, nach Prüfanlass getrennt. */
+export const PRUEFSCHRITTE_NACH_ART: Record<Pruefart, PruefSchritt[]> = {
+  anlage: ANLAGE_SCHRITTE,
+  geraet: GERAET_SCHRITTE,
+};
+
+/**
+ * Die Anlagenschritte unter dem bisherigen Namen.
+ *
+ * Bestehende Aufrufer und Tests meinen mit `PRUEFSCHRITTE` die Anlagenprüfung.
+ * Der Name bleibt deshalb als Kurzform erhalten; neue Stellen wählen über
+ * `PRUEFSCHRITTE_NACH_ART` bewusst den Prüfanlass.
+ */
+export const PRUEFSCHRITTE: PruefSchritt[] = ANLAGE_SCHRITTE;
+
+/**
  * Liefert die Grenze eines Schritts in der Anzeigeeinheit.
  * Gibt null zurück, wenn die Grenze aus einer Formel folgt und für den
  * konkreten Fall erst berechnet werden muss.
@@ -228,16 +355,18 @@ export function schrittZuEintrag(schritt: PruefSchritt, berechneteGrenze?: numbe
  * @param kontext Nennspannung und Bemessungsfehlerstrom des geprüften
  *   Stromkreises. Damit werden die Formelgrenzen berechenbar, statt sie offen
  *   zu lassen.
+ * @param art Prüfanlass: Anlage (DIN VDE 0100-600) oder Gerät (DIN VDE 0701-0702).
  */
-export function leeresProtokoll(kontext?: { u0: number; idnA: number }): ProtokollEintrag[] {
+export function leeresProtokoll(
+  kontext?: { u0: number; idnA: number },
+  art: Pruefart = 'anlage',
+): ProtokollEintrag[] {
   const abschaltgrenze = kontext ? kontext.u0 / kontext.idnA : undefined;
-  return PRUEFSCHRITTE.map((schritt) => {
+  return PRUEFSCHRITTE_NACH_ART[art].map((schritt) => {
     switch (schritt.id) {
       case 'durchgang-pe':
       case 'schleifenwiderstand':
         return schrittZuEintrag(schritt, abschaltgrenze);
-      case 'durchgang-leiter':
-        return schrittZuEintrag(schritt);
       default:
         return schrittZuEintrag(schritt);
     }
@@ -284,7 +413,11 @@ export interface ProtokollAuswertung {
   maxPunkte: number;
 }
 
-export function bewerteProtokoll(eintraege: ProtokollEintrag[]): ProtokollAuswertung {
+export function bewerteProtokoll(
+  eintraege: ProtokollEintrag[],
+  art: Pruefart = 'anlage',
+): ProtokollAuswertung {
+  const schritte = PRUEFSCHRITTE_NACH_ART[art];
   const fehlerhafte: PruefSchritt[] = [];
   const offene: PruefSchritt[] = [];
   const nichtBewertbar: PruefSchritt[] = [];
@@ -292,7 +425,7 @@ export function bewerteProtokoll(eintraege: ProtokollEintrag[]): ProtokollAuswer
   let punkte = 0;
 
   for (const eintrag of eintraege) {
-    const schritt = PRUEFSCHRITTE.find((s) => s.id === eintrag.schrittId);
+    const schritt = schritte.find((s) => s.id === eintrag.schrittId);
     if (!schritt) continue;
     if (!eintrag.durchgefuehrt || eintrag.messwert === null) {
       offene.push(schritt);
@@ -317,7 +450,7 @@ export function bewerteProtokoll(eintraege: ProtokollEintrag[]): ProtokollAuswer
     nichtBewertbar,
     quote: eintraege.length > 0 ? erfuellt / eintraege.length : 0,
     punkte,
-    maxPunkte: PRUEFSCHRITTE.reduce((s, p) => s + p.punkte, 0),
+    maxPunkte: schritte.reduce((s, p) => s + p.punkte, 0),
   };
 }
 
@@ -346,12 +479,16 @@ export function verfuegbareFehlerstroemeA(): number[] {
 }
 
 /**
- * Musterprotokoll einer Anlage mit zwei eingebauten Fehlern.
+ * Musterprotokoll mit eingebauten Fehlern.
  *
- * Der Nutzer soll daran üben, die Fehler zu finden: zu kleiner
- * Isolationswiderstand und zu großer Spannungsfall.
+ * Der Nutzer soll daran üben, die Fehler zu finden. Bei der Anlagenprüfung
+ * sind es zu kleiner Isolationswiderstand und zu großer Spannungsfall, bei der
+ * Geräteprüfung ein zu hoher Schutzleiterwiderstand und ein zu großer
+ * Ableitstrom.
  */
-export function musterProtokoll(): ProtokollEintrag[] {
+export function musterProtokoll(art: Pruefart = 'anlage'): ProtokollEintrag[] {
+  if (art === 'geraet') return musterGeraetProtokoll();
+
   const kontext = { u0: 230, idnA: 0.03 };
   const abschaltgrenze = kontext.u0 / kontext.idnA;
   return PRUEFSCHRITTE.map((schritt) => {
@@ -371,6 +508,46 @@ export function musterProtokoll(): ProtokollEintrag[] {
         return { ...eintrag, messwert: 30, durchgefuehrt: true, zeitpunkt: '10:31', bemerkung: 'Testtaste, trennt korrekt' };
       case 'spannungsfall':
         return { ...eintrag, messwert: 6.8, durchgefuehrt: true, zeitpunkt: '10:48', bemerkung: 'Steckdosen, Volllast' };
+      default:
+        return eintrag;
+    }
+  });
+}
+
+/**
+ * Musterprotokoll einer Geräteprüfung nach DIN VDE 0701-0702.
+ *
+ * Zwei Fehler sind eingebaut: Der Schutzleiterwiderstand liegt über 0,3 Ω,
+ * und der Ableitstrom liegt über 3,5 mA. Aufgefallen ist bei der Prüfung außerdem,
+ * dass die Anschlussleitung an der Zugentlastung blank gescheuert ist – die
+ * Sichtprüfung zählt also mit, auch wenn sie kein Messwert ist.
+ */
+export function musterGeraetProtokoll(): ProtokollEintrag[] {
+  return GERAET_SCHRITTE.map((schritt) => {
+    const eintrag = schrittZuEintrag(schritt);
+    switch (schritt.id) {
+      case 'geraet-sichtpruefung':
+        return {
+          ...eintrag,
+          messwert: 1,
+          durchgefuehrt: true,
+          zeitpunkt: '08:55',
+          bemerkung: 'Anschlussleitung an der Zugentlastung blank gescheuert',
+        };
+      case 'geraet-schutzleiter':
+        return {
+          ...eintrag,
+          messwert: 0.45,
+          durchgefuehrt: true,
+          zeitpunkt: '09:04',
+          bemerkung: 'Steckerkontakt bis Gehäuse, 3 m Leitung',
+        };
+      case 'geraet-isolation':
+        return { ...eintrag, messwert: 1.8, durchgefuehrt: true, zeitpunkt: '09:12', bemerkung: '500 V DC' };
+      case 'geraet-ableitstrom':
+        return { ...eintrag, messwert: 4.2, durchgefuehrt: true, zeitpunkt: '09:20', bemerkung: 'Ersatzableitstrom am spannungsfreien Gerät' };
+      case 'geraet-funktion':
+        return { ...eintrag, messwert: 0, durchgefuehrt: true, zeitpunkt: '09:28', bemerkung: 'Gerät läuft, Schalter ohne Befund' };
       default:
         return eintrag;
     }

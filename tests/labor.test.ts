@@ -9,6 +9,8 @@ import {
 } from '../src/labor/stromlaufplan.ts';
 import {
   PRUEFSCHRITTE,
+  PRUEFSCHRITTE_NACH_ART,
+  GERAET_SCHRITTE,
   bewerteMesswert,
   bewerteProtokoll,
   formatiereZahl,
@@ -118,6 +120,51 @@ describe('Prüfprotokoll', () => {
     expect(leer.offene).toHaveLength(PRUEFSCHRITTE.length);
     expect(leer.punkte).toBe(0);
     expect(leer.maxPunkte).toBeGreaterThan(0);
+  });
+});
+
+describe('Geräteprüfung nach DIN VDE 0701-0702', () => {
+  it('führt einen eigenen Schrittbestand, nicht die Anlagenschritte', () => {
+    const geraet = PRUEFSCHRITTE_NACH_ART.geraet;
+    const ids = geraet.map((s) => s.id);
+    expect(ids).toContain('geraet-sichtpruefung');
+    expect(ids).toContain('geraet-schutzleiter');
+    expect(ids).toContain('geraet-ableitstrom');
+    expect(ids.every((id) => id.startsWith('geraet-'))).toBe(true);
+  });
+
+  it('legt das leere Protokoll für ein Gerät mit den Geräteschritten an', () => {
+    const eintraege = leeresProtokoll(undefined, 'geraet');
+    expect(eintraege).toHaveLength(GERAET_SCHRITTE.length);
+    expect(eintraege.map((e) => e.schrittId)).toEqual(GERAET_SCHRITTE.map((s) => s.id));
+  });
+
+  it('kennt die Grenzwerte der Norm', () => {
+    const pe = GERAET_SCHRITTE.find((s) => s.id === 'geraet-schutzleiter')!;
+    const iso = GERAET_SCHRITTE.find((s) => s.id === 'geraet-isolation')!;
+    const strom = GERAET_SCHRITTE.find((s) => s.id === 'geraet-ableitstrom')!;
+    expect(grenzwert(pe)).toBe(0.3);
+    expect(grenzwert(iso)).toBe(1);
+    expect(grenzwert(strom)).toBe(3.5);
+    expect(pe.richtung).toBe('obergrenze');
+    expect(iso.richtung).toBe('untergrenze');
+  });
+
+  it('findet die eingebauten Fehler im Musterprotokoll', () => {
+    const auswertung = bewerteProtokoll(musterProtokoll('geraet'), 'geraet');
+    const ids = auswertung.fehlerhafte.map((s) => s.id);
+    expect(ids).toContain('geraet-schutzleiter');
+    expect(ids).toContain('geraet-ableitstrom');
+    expect(ids).toContain('geraet-sichtpruefung');
+    // Isolation und Funktion liegen im grünen Bereich.
+    expect(ids).not.toContain('geraet-isolation');
+    expect(ids).not.toContain('geraet-funktion');
+  });
+
+  it('bewertet die Geräteschritte nach ihren eigenen Grenzen', () => {
+    const befund = bewerteProtokoll(leeresProtokoll(undefined, 'geraet'), 'geraet');
+    expect(befund.offene).toHaveLength(GERAET_SCHRITTE.length);
+    expect(befund.maxPunkte).toBe(GERAET_SCHRITTE.reduce((s, p) => s + p.punkte, 0));
   });
 });
 

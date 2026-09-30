@@ -21,10 +21,12 @@ import {
   type Anlage,
 } from '../../labor/stromlaufplan.ts';
 import {
-  PRUEFSCHRITTE,
+  PRUEFSCHRITTE_NACH_ART,
   leeresProtokoll,
+  musterProtokoll,
   bewerteProtokoll,
   formatiereZahl,
+  type Pruefart,
   type ProtokollEintrag,
 } from '../../labor/pruefprotokoll.ts';
 import { PHASEN, minuteAlsUhrzeit, tagesUebersicht, PHASEN_PUNKTE_GESAMT } from '../../labor/ablauf.ts';
@@ -395,12 +397,15 @@ function PlanSeite(props: { store: Store }) {
 
 function ProtokollSeite(props: { store: Store }) {
   // Ein begonnenes Prüfprotokoll ist wertvolle Arbeit – es darf nicht
-  // verschwinden, nur weil die Seite neu geladen wurde.
-  const [eintraege, setEintraege] = useGespeichert<ProtokollEintrag[]>(
-    'messprotokoll',
-    leeresProtokoll({ u0: 230, idnA: 0.03 }),
+  // verschwinden, nur weil die Seite neu geladen wurde. Der Anlass der Prüfung
+  // gehört dazu: Anlage und Gerät sind verschiedene Protokolle.
+  const [art, setArt] = useGespeichert<Pruefart>('pruefart', 'anlage');
+  const [eintraege, setEintraege, zuruecksetzen] = useGespeichert<ProtokollEintrag[]>(
+    `messprotokoll-${art}`,
+    leeresProtokoll({ u0: 230, idnA: 0.03 }, art),
   );
-  const auswertung = useMemo(() => bewerteProtokoll(eintraege), [eintraege]);
+  const schritte = PRUEFSCHRITTE_NACH_ART[art];
+  const auswertung = useMemo(() => bewerteProtokoll(eintraege, art), [eintraege, art]);
 
   const setzen = (schrittId: string, feld: 'messwert' | 'durchgefuehrt', wert: unknown): void => {
     setEintraege((alt) =>
@@ -408,12 +413,35 @@ function ProtokollSeite(props: { store: Store }) {
     );
   };
 
+  const artWechseln = (neu: Pruefart): void => setArt(neu);
+
   return (
     <div>
       <p className="klein">
         Fülle das Protokoll wie in der Prüfung. Grenzwerte kommen aus der
         Faktenbasis; wo eine Formel nötig ist, steht das ausdrücklich dabei –
         statt einer geratenen Zahl.
+      </p>
+
+      <div className="reiterreihe">
+        <button
+          className={`reiter ${art === 'anlage' ? 'aktiv' : ''}`}
+          onClick={() => artWechseln('anlage')}
+        >
+          Anlage – VDE 0100-600
+        </button>
+        <button
+          className={`reiter ${art === 'geraet' ? 'aktiv' : ''}`}
+          onClick={() => artWechseln('geraet')}
+        >
+          Gerät – VDE 0701-0702
+        </button>
+      </div>
+
+      <p className="klein">
+        {art === 'anlage'
+          ? 'Erstprüfung der ortsfesten Anlage: Schutzleiter und Leiter, Isolation, Schleifenwiderstand, Fehlerstromschutz, Spannungsfall.'
+          : 'Prüfung eines elektrischen Betriebsmittels: Sichtprüfung, Schutzleiterwiderstand der Anschlussleitung, Isolation, Ableitstrom, Funktion.'}
       </p>
 
       <div className="zusammenfassung">
@@ -431,7 +459,16 @@ function ProtokollSeite(props: { store: Store }) {
         </div>
       </div>
 
-      {PRUEFSCHRITTE.map((schritt) => {
+      <div className="zeile">
+        <button className="reiter" onClick={() => setEintraege(musterProtokoll(art))}>
+          Musterprotokoll mit Fehlern laden
+        </button>
+        <button className="reiter" onClick={zuruecksetzen}>
+          Zurücksetzen
+        </button>
+      </div>
+
+      {schritte.map((schritt) => {
         const eintrag = eintraege.find((e) => e.schrittId === schritt.id);
         const fehler = auswertung.fehlerhafte.some((s) => s.id === schritt.id);
         return (

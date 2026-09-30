@@ -361,4 +361,91 @@ export const FAKTEN_SCHUTZ: Fact[] = [
     verification: 'geprueft',
     tags: ['wiederholungspruefung', 'erdung'],
   },
+
+  // --- Geräteprüfung nach DIN VDE 0701-0702 --------------------------------
+  {
+    id: 'pe-widerstand-geraet',
+    version: V,
+    kategorie: 'Prüfung',
+    bezeichnung: 'Schutzleiterwiderstand am Betriebsmittel (SK I)',
+    wert: 0.3,
+    einheit: 'Ω',
+    quelleId: 'vde0701',
+    gueltigAb: AB,
+    gueltigBis: UNBEGRENZT,
+    ersetztDurch: null,
+    pruefungsrelevanz: ['Norm', 'ZVEH'],
+    region: null,
+    jahrgang: null,
+    bemerkung:
+      'Grenzwert für Anschlussleitungen bis 5 m bei Bemessungsstrom bis 16 A. ' +
+      'Für jede weitere 7,5 m Leitungslänge 0,1 Ω mehr, höchstens 1 Ω. ' +
+      'Gemessen wird zwischen dem Schutzleiter des Netzsteckers und berührbaren ' +
+      'leitfähigen Teilen.',
+    verification: 'geprueft',
+    tags: ['geraetepruefung', 'schutzleiter', 'wiederholungspruefung'],
+  },
+  {
+    id: 'riso-geraet-sk1',
+    version: V,
+    kategorie: 'Prüfung',
+    bezeichnung: 'Isolationswiderstand am Betriebsmittel der Schutzklasse I',
+    wert: 1,
+    einheit: 'MΩ',
+    quelleId: 'vde0701',
+    gueltigAb: AB,
+    gueltigBis: UNBEGRENZT,
+    ersetztDurch: null,
+    pruefungsrelevanz: ['Norm', 'ZVEH'],
+    region: null,
+    jahrgang: null,
+    bemerkung:
+      'Mindestens 1 MΩ bei Geräten der Schutzklasse I. Geräte mit Heizwicklung ' +
+      'dürfen bis auf 0,3 MΩ absinken. Für Schutzklasse II gilt 2 MΩ.',
+    verification: 'geprueft',
+    tags: ['geraetepruefung', 'isolation', 'wiederholungspruefung'],
+  },
+  {
+    id: 'schutzleiterstrom-geraet',
+    version: V,
+    kategorie: 'Prüfung',
+    bezeichnung: 'Schutzleiterstrom (Ableitstrom) am Betriebsmittel der Schutzklasse I',
+    wert: 3.5,
+    einheit: 'mA',
+    quelleId: 'vde0701',
+    gueltigAb: AB,
+    gueltigBis: UNBEGRENZT,
+    ersetztDurch: null,
+    pruefungsrelevanz: ['Norm', 'ZVEH'],
+    region: null,
+    jahrgang: null,
+    bemerkung:
+      'Höchstens 3,5 mA. Bei Geräten mit Heizelementen über 3,5 kW gilt ' +
+      '1 mA je kW Heizleistung, höchstens 10 mA. Der Ersatzableitstrom wird als ' +
+      'Ersatzverfahren an spannungsfreiem Gerät gemessen und mit demselben ' +
+      'Grenzwert bewertet.',
+    verification: 'geprueft',
+    tags: ['geraetepruefung', 'ableitstrom', 'wiederholungspruefung'],
+  },
+  {
+    id: 'beruehrungsstrom-geraet',
+    version: V,
+    kategorie: 'Prüfung',
+    bezeichnung: 'Berührungsstrom an berührbaren leitfähigen Teilen',
+    wert: 0.5,
+    einheit: 'mA',
+    quelleId: 'vde0701',
+    gueltigAb: AB,
+    gueltigBis: UNBEGRENZT,
+    ersetztDurch: null,
+    pruefungsrelevanz: ['Norm', 'ZVEH'],
+    region: null,
+    jahrgang: null,
+    bemerkung:
+      'Höchstens 0,5 mA an berührbaren leitfähigen Teilen, die nicht mit dem ' +
+      'Schutzleiter verbunden sind. Gilt ebenso für Betriebsmittel der ' +
+      'Schutzklasse II.',
+    verification: 'geprueft',
+    tags: ['geraetepruefung', 'beruehrungsstrom', 'wiederholungspruefung'],
+  },
 ];

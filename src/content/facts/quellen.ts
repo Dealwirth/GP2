@@ -30,6 +30,15 @@ export const QUELLEN: Record<string, Quelle> = {
     url: null,
     abgerufen: ABGERUFEN,
   },
+  vde0701: {
+    id: 'vde0701',
+    titel: 'Prüfung nach Instandsetzung, Änderung elektrischer Geräte – Wiederholungsprüfung elektrischer Geräte',
+    herausgeber: 'DIN VDE / VDE FNN',
+    kennung: 'DIN VDE 0701-0702',
+    ausgabe: null,
+    url: null,
+    abgerufen: ABGERUFEN,
+  },
   trbs1201: {
     id: 'trbs1201',
     titel: 'Wiederkehrende Prüfungen von ortsveränderlichen elektrischen Betriebsmitteln und Anlagen',
