@@ -28,6 +28,13 @@ export interface Einstellungen {
   kiAktiv: boolean;
   /** Zweitprüfung durch ein zweites Modell – kostet Zeit, spart Fehler. */
   zweitpruefung: boolean;
+  /**
+   * Wie viele Aufgaben im Hintergrund bereitliegen sollen.
+   *
+   * Ein Vorrat macht den Start einer Runde schnell, kostet aber beim ersten
+   * Öffnen Anfragen. Wer sein Kontingent schonen will, stellt hier kleiner.
+   */
+  vorrat: number;
   /** Musik/effekte in den Animationen. */
   animationen: boolean;
   /** Prüfungstermine überschreiben, falls die IHK sie ändert. */
@@ -44,6 +51,7 @@ export const STANDARDEINSTELLUNGEN: Einstellungen = {
   modelle: ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b'],
   kiAktiv: true,
   zweitpruefung: true,
+  vorrat: 10,
   animationen: true,
   pruefungsdatumSchriftlich: '2027-05-11',
   pruefungsdatumPraktisch: '2027-06-07',

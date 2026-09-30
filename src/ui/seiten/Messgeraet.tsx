@@ -92,6 +92,14 @@ export function MessgeraetSeite() {
     setUebernommen(null);
   };
 
+  // Am echten Gerät ist die Anzeige nach dem Umschalten sofort eine andere.
+  // Vorher blieb hier der alte Wert stehen, während die Bewertung schon mit
+  // dem neuen Drehschalter rechnete – Anzeige und Urteil liefen auseinander.
+  const stelleEin = (neu: Geraet): void => {
+    setGeraet(neu);
+    setGemessen(null);
+  };
+
   const aufgabeWechseln = (id: string): void => {
     setAufgabeId(id);
     setGemessen(null);
@@ -159,7 +167,7 @@ export function MessgeraetSeite() {
             <button
               key={m.id}
               className={`stufe ${m.id === geraet.messart ? 'aktiv' : ''}`}
-              onClick={() => setGeraet({ ...geraet, messart: m.id as Messart })}
+              onClick={() => stelleEin({ ...geraet, messart: m.id as Messart })}
               title={m.bedingung}
             >
               <span className="messSymbol">{m.symbol}</span>
@@ -174,7 +182,7 @@ export function MessgeraetSeite() {
             <button
               key={b}
               className={`buchse ${b === geraet.roteBuchse ? 'aktiv' : ''}`}
-              onClick={() => setGeraet({ ...geraet, roteBuchse: b })}
+              onClick={() => stelleEin({ ...geraet, roteBuchse: b })}
             >
               {b}
             </button>

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { Fehlergrenze } from './ui/Fehlergrenze.tsx';
 import './styles.css';
 
 const wurzel = document.getElementById('root');
@@ -8,7 +9,9 @@ if (!wurzel) throw new Error('Kein Wurzelelement gefunden.');
 
 createRoot(wurzel).render(
   <StrictMode>
-    <App />
+    <Fehlergrenze>
+      <App />
+    </Fehlergrenze>
   </StrictMode>,
 );
 

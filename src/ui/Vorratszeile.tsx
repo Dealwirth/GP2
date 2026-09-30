@@ -28,12 +28,13 @@ export function Vorratszeile(props: { store: Store }) {
   useEffect(() => {
     if (!store.geladen) return;
     const ai = aiEinstellungenAus(store.einstellungen);
-    void fuelleVorratAuf(ai);
+    void fuelleVorratAuf(ai, store.einstellungen.vorrat);
   }, [store.geladen, store.einstellungen]);
 
+  const ziel = store.einstellungen.vorrat;
   const farbe = stand.fehler
     ? 'vorratFehler'
-    : stand.bereit >= 10
+    : stand.bereit >= ziel
       ? 'vorratVoll'
       : stand.fuelltAuf
         ? 'vorratLaeuft'
@@ -45,13 +46,13 @@ export function Vorratszeile(props: { store: Store }) {
       title={
         stand.fehler
           ? `Vorrat: ${stand.fehler}`
-          : `${stand.bereit} fertige Aufgaben bereit (${stand.gesamt} insgesamt gespeichert)`
+          : `${stand.bereit} fertige Aufgaben bereit (${stand.gesamt} insgesamt gespeichert, Ziel ${ziel})`
       }
-      onClick={() => void fuelleVorratAuf(aiEinstellungenAus(store.einstellungen))}
+      onClick={() => void fuelleVorratAuf(aiEinstellungenAus(store.einstellungen), ziel)}
     >
       <span className="vorratPunkt" />
       <span className="vorratText">
-        {stand.fuelltAuf && stand.bereit < 10
+        {stand.fuelltAuf && stand.bereit < ziel
           ? `${stand.bereit} · wird aufgefüllt`
           : `${stand.bereit} bereit`}
       </span>

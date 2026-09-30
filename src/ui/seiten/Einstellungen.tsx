@@ -102,6 +102,23 @@ export function Einstellungen(props: { store: Store }) {
           Zweitprüfung durch zweites Modell
         </label>
 
+        <label className="eingabeZeile">
+          <span>Aufgaben-Vorrat</span>
+          <input
+            type="number"
+            min={0}
+            max={60}
+            step={5}
+            value={store.einstellungen.vorrat}
+            onChange={(e) => aendern({ vorrat: Math.max(0, Math.min(60, Number(e.target.value) || 0)) })}
+          />
+        </label>
+        <p className="klein">
+          So viele Aufgaben hält die App im Hintergrund fertig, damit eine Runde
+          sofort beginnt. Zehn ist die Voreinstellung; null schaltet das
+          Vorladen ab. Der Vorrat steht oben im Kopf neben dem KI-Zustand.
+        </p>
+
         <p className="klein">
           Der Groq-Schlüssel ist fest eingebaut – die KI arbeitet sofort, ohne
           Einrichtung. Wer einen eigenen Schlüssel nutzen will, kann ihn hier
