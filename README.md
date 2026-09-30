@@ -36,17 +36,16 @@ Abstürzen aber auch.
 
 | Bereich | Inhalt |
 |---|---|
-| **Faktenbasis v1.0** | 33 Einträge mit Quelle, Gültigkeitszeitraum, Region und Prüfstatus. 7 Werte sind noch nicht am Original geprüft – sie werden als offen gekennzeichnet, statt als gesichert aufzutauchen. |
+| **Faktenbasis v1.0** | Werte mit Quelle, Gültigkeitszeitraum, Region und Prüfstatus. Jeder Fakt verweist auf ein Quellenverzeichnis mit Kennung und Bezugsweg; offene Werte werden als offen gekennzeichnet, statt als gesichert aufzutauchen. |
 | **Rechen-Engine** | Deterministisch. Strombelastbarkeit, Absicherung, Abschaltbedingung, Schleifenwiderstand, Spannungsfall. Jedes Ergebnis nennt die verwendete Regel und liefert Lösungsschritte. |
 | **Lernpfad** | 211 Themen in 32 Kapiteln, gegliedert nach den Berufsbildpositionen der Fachrichtung EGT (§ 4 ElekAusbV). |
 | **Aufgabenvorrat** | 81 geprüfte Aufgaben in allen drei Antwortformaten der Prüfung: `mc`, `fall` und `strukturiert`/`offen`. Rechen- und Kennwerte aus der Faktenbasis, plus kuratierte Fallaufgaben, Fachfragen und WiSo-Fragen für alle vier Bereiche von Teil 2. |
 | **KI-Erzeugung** | Groq, direkt und ohne Zwischenstation. Jede Aufgabe wird frisch erzeugt und muss dieselbe Prüfung nehmen: Rezept durch die Rechen-Engine, Faktenbindung, Duplikatsperre, Zweitprüfung. Der Aufgabenstrom mischt alle Prüfungsbereiche und wiederholt sich nicht. |
 | **Prüfungssimulation** | Originalzeit, Originalpunkte, keine Rückmeldung vor dem Abgeben, Auswertung nach § 15 ElekAusbV. |
-| **Labor** | **Geführter Kundenauftrag** (Wärmepumpe, Wallbox, PV: Planung gegen die Engine, Ausführungsreihenfolge mit Sicherheitsregeln, Fachgespräch), vier animierte Stationen, **Prüfgerät-Simulation**, Stromlaufplan-Prüfung, Messprotokoll, 16-Stunden-Ablauf. |
-| **Prüfgerät** | Drehschalter mit acht Messarten, drei Buchsen, sechs Messpunkte, spannungsfrei/unter Spannung. Falsch eingestellt kommt die *echte* Anzeige heraus – 0 V bei falscher Buchse, O.L bei Widerstandsmessung unter Spannung, Kurzschluss bei Strommessung parallel. Gestaffelte Hilfe kostet 15 % Punkte je Stufe. Richtige Werte gehen mit einem Griff ins Prüfprotokoll. |
+| **Kundenauftrag** | Geführter Kundenauftrag zur praktischen Prüfung (Wärmepumpe, Wallbox, PV, Geräteprüfung): Planung gegen die Engine, Ausführungsreihenfolge mit den fünf Sicherheitsregeln, Prüf- und Messergebnisse, Fachgespräch – bewertet nach dem PAL-Schema. |
 | **Lerngedächtnis** | Zustandsautomat mit Vergessen, Sicherheitsquote (geraten zählt halb), Digest, Coach-Überwachung. Die Reife **sinkt** bei schlechter Leistung (frisches Fünf-Versuche-Fenster) und **verfällt** nach Stillstand (zustandsabhängige Halbwertszeit: 7 Tage frisch, 21 gefestigt, 45 prüfungsreif). |
 | **KI** | Direkt mit Groq, ohne Einrichtung. Aufgabenerzeugung aus dem Lernlager, Lernberatung, Verbindungstest. Jeder Fehler wird in Klartext plus **nächsten Schritt** übersetzt. |
-| **Zustand** | Seite, laufende Sitzung, Prüfungsfortschritt samt Restzeit, Laborzustand, Messprotokoll und Filter überleben ein Neuladen. |
+| **Zustand** | Seite, laufende Sitzung, Prüfungsfortschritt samt Restzeit und Filter überleben ein Neuladen. |
 | **Bildschirmbreiten** | Telefon: eine Spalte, Navigation unten. Tablet: breiteres Feld, Karten zweispaltig. PC: Navigation als Leiste links, Inhalt zentriert im freien Raum. |
 | **Termine** | Sommerprüfung 2027 mit Countdown, Fristen-Wächter und Phasenplan bis zum Prüfungstag. |
 | **PWA** | Installierbar, offline nutzbar. |
@@ -87,7 +86,6 @@ src/
   tasks/       Aufgabengeneratoren, Sitzungs-Baukasten, Rezeptauflösung
   ai/          Groq-Client, Prompts, Zweitprüfung
   memory/      Lerngedächtnis, Digest, Coach
-  labor/       Stationen, Stromlaufplan, Prüfprotokoll, 16-Stunden-Ablauf
   crypto/      AES-GCM/PBKDF2 – dieselbe Krypto für Backup und Sync
   storage/     Speicher-Adapter (IndexedDB)
   ui/          Oberfläche, ein React-State-Hook, keine Router-Bibliothek

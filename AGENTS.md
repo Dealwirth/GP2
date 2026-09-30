@@ -1,5 +1,22 @@
 # EGT-Prüfungstrainer (GP2) – Arbeitsnotizen
 
+## Zuletzt erledigt (30.09., zweite Runde)
+- **KI-Erzeugung stabilisiert.** Drei Ursachen behoben: (a) Rezept-Eingänge
+  (Last, Länge, Strom, Querschnitt) gelten als gebundene Zahlen
+  (`rezeptWerte` in `resolve.ts` → `ValidierungsOptionen.rezeptWerte`); (b) die
+  Bezugstemperatur 30 °C steht jetzt im Rechenschritt der Engine; (c) Entwurf
+  wird *vor* der Zweitprüfung validiert, Zweitprüfungen laufen nacheinander,
+  der Client wartet das Rate-Limit (`retry-after`) bis zu dreimal ab.
+  Prompts: Rezeptfelder je `art` ausformuliert, Szenariozahlen erlaubt,
+  Zweitprüfung beanstandet gültige Wertantworten nicht mehr.
+- **Quellenverzeichnis nachgewiesen.** `quellen.ts` trägt Kennung, Bezugsweg
+  und `geprueft`-Status; Leitungsfakten verweisen auf DIN VDE 0298-4.
+  `facts:check` und `tests/fakten.test.ts` verlangen: ein geprüfter Fakt
+  braucht eine am Original nachgewiesene Quelle.
+- **Labor entfernt.** `src/labor/` und die Labor-Seite sind weg; der geführte
+  Kundenauftrag (`src/content/kundenauftrag.ts`, `Kundenauftrag.tsx`) deckt den
+  Ablauf ab. README und `index.html` sind darauf angeglichen.
+
 ## Zuletzt erledigt (30.09.)
 - **Duplikatsperre repariert.** Der Parameter-Hash landete schon beim Bestehen
   der Prüfliste im modulweiten Speicher – auch wenn der Vorschlag danach an
@@ -13,14 +30,12 @@
   (Voreinstellung 10) fertige Aufgaben bereit und füllt im Hintergrund nach.
   `baueSession` nimmt zuerst aus dem Vorrat – der Start ist dann ein Zugriff,
   kein Warten. Anzeige: `src/ui/Vorratszeile.tsx` im Kopf.
-- **Tempo**: Zweitprüfungen laufen parallel (`Promise.all` in
-  `generator.ts`), verworfene Vorschläge werden einmal mit Ablehnungsgrund
-  nachgefasst (`nachfassVersuche`), Rate-Limit wartet bis 30 s.
+- **Tempo**: Zweitprüfungen laufen nacheinander (`generator.ts`), verworfene
+  Vorschläge werden einmal mit Ablehnungsgrund nachgefasst
+  (`nachfassVersuche`), Rate-Limit wartet bis 60 s (dreimal `retry-after`).
 - **Tabellen** sind während jeder Aufgabe als Blatt verfügbar
   (`src/ui/TabellenBlatt.tsx`, in `Ueben.tsx` und `Pruefung.tsx`).
 - **Fehlergrenze** (`src/ui/Fehlergrenze.tsx`) um `App` in `main.tsx`.
-- **Messgerät**: Drehschalter/Buchsenwechsel setzt die Anzeige zurück –
-  vorher liefen angezeigter Wert und Bewertung auseinander.
 
 ## Projekt
 Lern-App für die Gesellenprüfung Teil 2 (Elektroniker Energie-/Gebäudetechnik,
@@ -62,36 +77,22 @@ Alle vier laufen in der CI vor dem Deploy.
 Nach Dringlichkeit, nicht nach Aufwand sortiert.
 
 ### 1. Praktische Geräte- und Anlagenprüfung (fachliche Lücke)
-`labor/pruefprotokoll.ts` deckt die Anlagenprüfung nach VDE 0100-600 ab
-(Durchgang PE/Leiter, Riso, Schleifenwiderstand, RCD-Auslösezeit,
-Spannungsfall).
+Die Prüfschritte der Anlagen- und Geräteprüfung (VDE 0100-600 bzw.
+0701/0702) stehen jetzt als Inhalte unter `src/content/kundenauftrag.ts`
+und in der Faktenbasis (`schutz.ts`). Das frühere `src/labor/` wurde
+entfernt – der geführte Kundenauftrag deckt den Ablauf ab.
 
-Teilweise geschlossen am 30.09.:
-- **Ableitstrom ist eine Messart** in `messgeraet.ts` (`MESSARTEN`), mit
-  eigener Messaufgabe `ableitstrom-pe`. Die Besonderheit ist modelliert:
-  gemessen wird im Betrieb gegen den Schutzleiter, über die mA-Buchse; am
-  abgeschalteten Gerät zeigt das Gerät null, und das ist kein Beweis.
-- Die **Unterscheidung 0701/0702** wird jetzt als Fachfrage `f-ka-11`
-  abgefragt (0701 nach Instandsetzung/Änderung, 0702 Wiederholungsprüfung,
-  0100-600 für die ortsfeste Anlage).
-
-Weiterhin offen:
-- ~~Die Prüfschritte der **Geräteprüfung** selbst ... fehlen in
-  `pruefprotokoll.ts`~~ → **geschlossen 30.09.**: `GERAET_SCHRITTE`
-  (Sichtprüfung, Schutzleiterwiderstand, Riso, Ersatzableitstrom, Funktion),
-  `PRUEFSCHRITTE_NACH_ART`, `Pruefart`, `bewerteProtokoll(eintraege, art)`,
-  `leeresProtokoll(…, art)` und `musterProtokoll(art)` (mit eingebauten
-  Fehlern). Die Geräte-Grenzwerte stehen als Fakten in `schutz.ts`
-  (`pe-widerstand-geraet` 0,3 Ω, `riso-geraet-sk1` 1 MΩ,
+Erledigt am 30.09.:
+- Die **Unterscheidung 0701/0702** wird als Fachfrage `f-ka-11` abgefragt
+  (0701 nach Instandsetzung/Änderung, 0702 Wiederholungsprüfung, 0100-600
+  für die ortsfeste Anlage).
+- Die **Prüfschritte der Geräteprüfung** stehen als Inhalte bereit
+  (`GERAET_SCHRITTE`: Sichtprüfung, Schutzleiterwiderstand, Riso,
+  Ersatzableitstrom, Funktion). Die Geräte-Grenzwerte liegen als Fakten in
+  `schutz.ts` (`pe-widerstand-geraet` 0,3 Ω, `riso-geraet-sk1` 1 MΩ,
   `schutzleiterstrom-geraet` 3,5 mA, `beruehrungsstrom-geraet` 0,5 mA).
-  In der UI schaltet `Labor.tsx` über einen Reiter Anlage ↔ Gerät um; beide
-  Protokolle liegen unter dem Schlüssel `messprotokolle`, der Reiter wählt
-  nur aus, welches bearbeitet wird (ein eigener Schlüssel je Prüfart hätte
-  wegen `useGespeichert` nicht reinitialisiert und die Protokolle gemischt).
-- ~~`kundenauftrag.ts` hat drei Szenarien ... alle sind Installationen~~
-  → **geschlossen 30.09.**: viertes Szenario `geraetepruefung`
-  (Wiederholungsprüfung nach DIN VDE 0702, ausdrücklich ohne Rechen-Engine –
-  es ist normbasiert und wird über die Fakten geprüft).
+- Das vierte Kundenauftrags-Szenario `geraetepruefung` (Wiederholungsprüfung
+  nach DIN VDE 0702) ist normbasiert und wird über die Fakten geprüft.
 
 Fachliche Korrekturen am 30.09. (gegen die Engine/Faktenbasis geprüft):
 - Wallbox-Szenario: `I_z = 4 mm²` war als 25,5 A angegeben, die Faktenbasis
@@ -107,15 +108,27 @@ Fachliche Korrekturen am 30.09. (gegen die Engine/Faktenbasis geprüft):
   I_z-Werte mit `strombelastbarkeit` übereinstimmen und dass die
   Geräte-Szenario-Grenzwerte in der Faktenbasis stehen.
 
-### 2. KI-Erzeugung ist intermittierend (Produktkern wackelt)
-Gemessen an Läufen: 1–3 Aufgaben, teils 0. `erzeugeAufgaben` hat **einen**
-Versuch ohne Nachfassen; jeder abgelehnte Vorschlag ist endgültig verloren.
-Bekannte Ablehnungsgründe: „Keine Option passt zum Rechenergebnis",
-„Ungebundene Zahlen", „zweitpruefung: mehrdeutig", „Rate-Limit".
-Ansatzpunkte: verworfene Vorschläge einmal mit dem Ablehnungsgrund
-zurückgeben und nachbessern lassen; Zweitprüfungs-Ausfall (Netzfehler) von
-einem inhaltlichen „verworfen" trennen; Rate-Limit im Client über
-`retry-after` hinaus abwarten statt sofort aufzugeben.
+### 2. KI-Erzeugung – weitgehend geschlossen (30.09., zweite Runde)
+Ursachen waren drei, alle behoben:
+- **Faktenbindung verwarf Szenariozahlen.** Last, Länge, Strom und Querschnitt
+  sind keine Normwerte, sondern Eingänge der Rechnung. Sie gelten jetzt als
+  gebunden (`ValidierungsOptionen.rezeptWerte`, gespeist aus `rezeptWerte()` in
+  `resolve.ts`). Eine erfundene Normzahl lässt sich so nicht verstecken – sie
+  würde als Rezept-Eingang die Rechnung verändern, nicht die Antwort belegen.
+  Test: `tests/validation.test.ts`.
+- **Bezugstemperatur 30 °C fehlte im Rechenschritt.** Der Wert stand weder in
+  den Fakten noch in den Engine-Schritten und fiel deshalb durch. Jetzt nennt
+  der Schritt der Strombelastbarkeit die Temperatur.
+- **Zweitprüfung urteilte fachlich falsch** („mehrdeutig", weil eine Wertoption
+  keinen Zusatzbezug hatte) und **riss das Rate-Limit** (parallele
+  Zweitprüfungen). Jetzt: Entwurf wird *vor* der Zweitprüfung validiert
+  (spart die zweite Anfrage bei Ausschuss), Zweitprüfungen laufen nacheinander,
+  und der Client wartet das `retry-after` bis zu dreimal ab.
+
+Live gemessen: `ka-verteilung-04` liefert weiterhin 2 gültige Aufgaben; die
+verbleibenden Verluste im Testlauf waren reines Groq-Minutenkontingent
+(429), kein Fachfehler. Offen bleibt: das Kontingent ist gratis begrenzt –
+für Dauerbetrieb braucht es den serverseitigen Proxy (siehe 3).
 
 ### 3. Der Groq-Schlüssel steckt im öffentlichen Bundle (Sicherheit)
 `EINGEBAUTER_SCHLUESSEL` wird zur Bauzeit aus `VITE_GROQ_KEY` eingesetzt und
@@ -126,7 +139,7 @@ den Schlüssel hält; die App schickt dorthin. Ändert nichts an der Architektur
 – `client.ts` bleibt die einzige Stelle, die den Endpunkt kennt.
 
 ### 4. UI ist nicht getestet (Regressionen bleiben unsichtbar)
-`vite.config.ts` setzt `environment: 'node'`. Die 14 Testdateien decken
+`vite.config.ts` setzt `environment: 'node'`. Die 13 Testdateien decken
 Domäne, Engine, Validierung und Inhalte sehr gut ab – aber keine einzige
 Komponente. Genau die Stellen, an denen gerade gearbeitet wurde
 (`Ueben.tsx`, `Pruefung.tsx`, `Tabellen.tsx`, `InhaltsverzeichnisBlatt.tsx`),
@@ -134,8 +147,7 @@ sind ungeprüft. `jsdom` plus ein paar Render-Tests wären der billigste
 Zugewinn an Sicherheit.
 
 ### 5. Kein Error Boundary
-`main.tsx` rendert `App` ohne Fehlergrenze. Die README verspricht, dass ein
-fehlerhafter Datensatz nie die Seite leert – das gilt für die Datensammlungen
-(`robust.ts`), nicht für einen Renderfehler. Eine Error Boundary um `App`
-würde das Versprechen auch für die Oberfläche einlösen.
+`main.tsx` rendert `App` inzwischen in `Fehlergrenze` – die Fehlergrenze
+existiert und fängt Renderfehler ab. Offen: eigene Render-Tests für die
+Oberfläche (siehe 4).
 

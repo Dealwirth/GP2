@@ -187,12 +187,17 @@ export async function frage(
 
   if (antwort.status === 429) {
     // Das Kontingent ist tokenweise begrenzt und lädt sich in Sekunden wieder
-    // auf. Ein einziger automatischer Versuch mit kurzer Wartezeit nimmt der
-    // Sitzung den Stachel, dass eine von fünf Aufgaben an der Limite scheitert.
-    const wartesekunden = Number(antwort.headers.get('retry-after') ?? '0');
-    const ausText = /try again in ([\d.]+)s/i.exec(await antwort.clone().text());
-    const warte = Math.min(30_000, Math.ceil(((wartesekunden || Number(ausText?.[1] ?? 0)) + 1) * 1000));
-    if (warte > 0 && warte <= 30_000) {
+    // auf. Statt sofort aufzugeben, wartet der Client die vom Anbieter
+    // genannte Zeit ab und versucht es erneut. Ohne das fällt eine an sich
+    // gute Aufgabe nur wegen der Limite durch – und der Vorrat leert sich,
+    // obwohl fachlich alles in Ordnung ist.
+    for (let versuch = 0; versuch < 3; versuch += 1) {
+      const wartesekunden = Number(antwort.headers.get('retry-after') ?? '0');
+      const ausText = /try again in ([\d.]+)s/i.exec(await antwort.clone().text());
+      const sekunden = wartesekunden || Number(ausText?.[1] ?? 0) || 5;
+      // Nach oben begrenzt, damit ein Ausfall die Sitzung nicht minutenlang
+      // blockiert. Die Wartezeit wächst mit jedem Versuch leicht an.
+      const warte = Math.min(60_000, Math.ceil((sekunden + 1) * 1000 * (versuch + 1)));
       await new Promise((aufloesen) => setTimeout(aufloesen, warte));
       antwort = await fetch(einstellungen.proxyUrl, {
         method: 'POST',
@@ -200,16 +205,11 @@ export async function frage(
         body: JSON.stringify(body),
         signal,
       });
-      if (antwort.ok) {
-        // Unten weiter wie bei einem normalen Erfolg.
-      } else if (antwort.status === 429) {
-        throw new KiNichtErreichbar(
-          'Rate-Limit erreicht – auch der zweite Versuch kam zu früh. In einer Minute erneut versuchen.',
-        );
-      }
-    } else {
+      if (antwort.status !== 429) break;
+    }
+    if (antwort.status === 429) {
       throw new KiNichtErreichbar(
-        'Rate-Limit erreicht – das kostenlose Kontingent ist für den Moment aufgebraucht.',
+        'Rate-Limit erreicht – das kostenlose Kontingent ist für den Moment aufgebraucht. In einer Minute erneut versuchen.',
       );
     }
   }
