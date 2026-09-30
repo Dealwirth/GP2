@@ -84,8 +84,10 @@ Weiterhin offen:
   Fehlern). Die Geräte-Grenzwerte stehen als Fakten in `schutz.ts`
   (`pe-widerstand-geraet` 0,3 Ω, `riso-geraet-sk1` 1 MΩ,
   `schutzleiterstrom-geraet` 3,5 mA, `beruehrungsstrom-geraet` 0,5 mA).
-  In der UI schaltet `Labor.tsx` über einen Reiter Anlage ↔ Gerät um; jeder
-  Reiter hält sein eigenes Protokoll (`messprotokoll-anlage` / `-geraet`).
+  In der UI schaltet `Labor.tsx` über einen Reiter Anlage ↔ Gerät um; beide
+  Protokolle liegen unter dem Schlüssel `messprotokolle`, der Reiter wählt
+  nur aus, welches bearbeitet wird (ein eigener Schlüssel je Prüfart hätte
+  wegen `useGespeichert` nicht reinitialisiert und die Protokolle gemischt).
 - ~~`kundenauftrag.ts` hat drei Szenarien ... alle sind Installationen~~
   → **geschlossen 30.09.**: viertes Szenario `geraetepruefung`
   (Wiederholungsprüfung nach DIN VDE 0702, ausdrücklich ohne Rechen-Engine –
