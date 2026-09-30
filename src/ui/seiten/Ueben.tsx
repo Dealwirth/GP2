@@ -9,6 +9,7 @@ import {
 } from '../../tasks/session.ts';
 import { useGespeichert } from '../persistenz.ts';
 import { KiWerkstatt } from './KiWerkstatt.tsx';
+import { InhaltsverzeichnisBlatt } from '../InhaltsverzeichnisBlatt.tsx';
 import { storage } from '../../storage/index.ts';
 import { faktBericht } from '../../content/facts/index.ts';
 import { reifegrad } from '../../domain/stateMachine.ts';
@@ -50,6 +51,7 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
   // wiederhergestellt – und der Stand innerhalb der Runde dazu.
   const [laufend, setLaufend] = useState(() => holeSitzung());
   const [stand, setStand] = useGespeichert<Rundenstand>(RUNDE_SCHLUESSEL, startRundenstand());
+  const [zeigeVerzeichnis, setZeigeVerzeichnis] = useState(false);
 
   // Gehört der gemerkte Rundenspeicher noch zu dieser Sitzung? Nach dem
   // Beenden blieb früher das Ergebnis stehen – eine neu gestartete Sitzung
@@ -221,12 +223,22 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
         <span className="klein">
           {index + 1} / {aufgaben.length}
         </span>
+        {/* Nachschlagen mitten in der Aufgabe: Formeln und Verweisstellen,
+            ohne die Aufgabe zu verlassen. */}
+        <button className="still" onClick={() => setZeigeVerzeichnis(true)} type="button">
+          Formeln
+        </button>
         {restzeit !== null && (
           <span className={`klein ${restzeit < 60 ? 'frist dringend' : ''}`}>
             {Math.floor(restzeit / 60)}:{String(restzeit % 60).padStart(2, '0')}
           </span>
         )}
       </div>
+
+      <InhaltsverzeichnisBlatt
+        offen={zeigeVerzeichnis}
+        onSchliessen={() => setZeigeVerzeichnis(false)}
+      />
 
       {aktuelle && (
         <>

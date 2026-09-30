@@ -1574,3 +1574,100 @@ button.kiKurz {
     box-shadow: none;
   }
 }
+
+/* Inhaltsverzeichnis ------------------------------------------------------- */
+
+/*
+ * Das Blatt legt sich über die laufende Aufgabe, statt sie zu ersetzen.
+ *
+ * Wer mitten im Rechnen nachschlagen will, soll danach genau dort weiterlesen,
+ * wo er war. Ein Seitenwechsel würde die halb gelesene Aufgabe aus dem Blick
+ * nehmen – und im Prüfungsmodus wäre sie damit verloren.
+ */
+.blattHintergrund {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1rem;
+  z-index: 50;
+  overflow-y: auto;
+}
+
+.blatt {
+  background: var(--grund);
+  border: 1px solid var(--linie);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 640px;
+  margin: 1rem 0 3rem;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+}
+
+.blattKopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--linie);
+}
+
+.blattInhalt {
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.ivEintrag {
+  border-top: 1px solid var(--linie);
+}
+
+.ivEintrag:first-of-type {
+  border-top: none;
+}
+
+button.ivTitel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 0.75rem 0;
+  min-height: 44px;
+  color: inherit;
+}
+
+.ivInhalt {
+  padding: 0 0 0.75rem;
+}
+
+.ivFormeln {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ivFormeln li {
+  display: grid;
+  gap: 0.15rem;
+  border-left: 3px solid var(--linie);
+  padding-left: 0.6rem;
+}
+
+.ivFormel {
+  font-family: var(--mono, monospace);
+  font-size: 1.02rem;
+}
+
+.ivVerweise p {
+  margin: 0.25rem 0;
+}
+

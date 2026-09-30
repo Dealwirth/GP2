@@ -9,6 +9,7 @@ import type { Task } from '../../domain/types.ts';
 import type { Store } from '../store.ts';
 import type { SeitenName } from '../router.ts';
 import { useGespeichert } from '../persistenz.ts';
+import { InhaltsverzeichnisBlatt } from '../InhaltsverzeichnisBlatt.tsx';
 
 /** Schlüssel des laufenden Durchgangs im dauerhaften Speicher. */
 const LAUF_SCHLUESSEL = 'pruefung-lauf';
@@ -220,6 +221,7 @@ function PruefungLaufend(props: {
    * nichts mehr über das echte Zeitverhalten aus.
    */
   const [restzeit, setRestzeit] = useState(() => restsekunden(pruefung, lauf.beginn));
+  const [zeigeVerzeichnis, setZeigeVerzeichnis] = useState(false);
 
   // Funktionale Aktualisierung, nicht `{...lauf, ...}`.
   //
@@ -351,10 +353,20 @@ function PruefungLaufend(props: {
         <span className="klein">
           {index + 1} / {aufgaben.length}
         </span>
+        {/* Tabellenbuch und Formelsammlung sind in der Prüfung zugelassen –
+            die Übersicht gehört deshalb auch hierher, nicht nur ins Üben. */}
+        <button className="still" onClick={() => setZeigeVerzeichnis(true)} type="button">
+          Formeln
+        </button>
         <span className={`zahlKlein ${restzeit < 300 ? 'rot' : ''}`}>
           {Math.floor(restzeit / 60)}:{String(restzeit % 60).padStart(2, '0')}
         </span>
       </div>
+
+      <InhaltsverzeichnisBlatt
+        offen={zeigeVerzeichnis}
+        onSchliessen={() => setZeigeVerzeichnis(false)}
+      />
 
       <div className="balken fortschrittsbalken">
         <div

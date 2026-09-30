@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGespeichert } from '../persistenz.ts';
 import { FAKTEN, FAKTEN_VERSION } from '../../content/facts/index.ts';
 import type { Fact } from '../../domain/types.ts';
+import { Inhaltsverzeichnis } from '../Inhaltsverzeichnis.tsx';
 import {
   IZ_VERLEGEART_C,
   ABSICHERUNG_SCHULTABELLE,
@@ -78,6 +79,7 @@ export function Tabellen() {
 
       <div className="reiterreihe" role="tablist">
         {[
+          { id: 'verzeichnis', label: 'Inhaltsverzeichnis' },
           { id: 'strom', label: 'Strombelastbarkeit' },
           { id: 'absicherung', label: 'Absicherung' },
           { id: 'faktoren', label: 'Faktoren' },
@@ -93,14 +95,18 @@ export function Tabellen() {
         ))}
       </div>
 
-      <label className="feld">
-        <span>Tabelle filtern (Querschnitt oder Temperatur)</span>
-        <input
-          value={suche}
-          onChange={(e) => setSuche(e.target.value)}
-          placeholder="z. B. 2,5 oder 40"
-        />
-      </label>
+      {reiter !== 'verzeichnis' && (
+        <label className="feld">
+          <span>Tabelle filtern (Querschnitt oder Temperatur)</span>
+          <input
+            value={suche}
+            onChange={(e) => setSuche(e.target.value)}
+            placeholder="z. B. 2,5 oder 40"
+          />
+        </label>
+      )}
+
+      {reiter === 'verzeichnis' && <Inhaltsverzeichnis />}
 
       {reiter === 'strom' && (
         <section className="karte">
