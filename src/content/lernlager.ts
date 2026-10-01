@@ -5,15 +5,14 @@ import { FAKTEN, holeFakt } from './facts/index.ts';
 /**
  * Das Lernlager.
  *
- * Die KI erzeugt jede Aufgabe allein aus diesem Bestand: Thema, Lernziel,
- * Besprechung, erlaubte Fakten, Quelle. Sie darf nichts hinzuerfinden –
- * was nicht im Lager steht, kann nicht geprüft werden und wird von der
- * Pipeline verworfen.
+ * Das Lager verbindet Thema, Lernziel, Besprechung, erlaubte Fakten und
+ * Quelle. Was nicht im Lager steht, kann nicht geprüft werden und wird von
+ * der Pipeline verworfen.
  *
  * Die Besprechungen sind kurze, prüfungsscharfe Zusammenfassungen. Sie
  * nennen das Fachliche, das in der Prüfung gezählt wird – nicht mehr.
- * Wo ein Wert offen ist (noch nicht am Original geprüft), steht das hier
- * und wird an die KI durchgereicht, damit die Aufgabe es ausweist.
+ * Wo ein Wert offen ist (noch nicht am Original geprüft), steht das hier,
+ * damit die Aufgabe es ausweist.
  */
 
 export interface LagerEintrag {
@@ -22,7 +21,7 @@ export interface LagerEintrag {
   besprechung: string;
   /** Prüfungsnahe Fragestellungen, die zu diesem Thema passen. */
   typischeFragen: string[];
-  /** Fakten-IDs, die die KI für dieses Thema verwenden darf. */
+  /** Fakten-IDs, die zu diesem Thema gehören. */
   faktenIds: string[];
 }
 
@@ -192,7 +191,7 @@ const GRUNDFAKTEN = [
   'idn-personenschutz',
 ];
 
-/** Fakten-IDs, die die KI für ein Thema verwenden darf. */
+/** Fakten-IDs, die zu einem Thema gehören. */
 function faktenFuerAtom(atom: Atom): string[] {
   const gepflegt = GEPFLEGTE_BESPRECHUNGEN[atom.id];
   if (gepflegt) return gepflegt.fakten.filter((id) => holeFakt(id) !== undefined);

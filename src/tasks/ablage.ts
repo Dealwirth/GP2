@@ -74,3 +74,12 @@ export function holeAufgaben(ids: string[]): Task[] {
 export function holeAlleAufgaben(): Task[] {
   return Object.values(lade().aufgaben);
 }
+
+/** Kennungen der Themen, zu denen bereits eine Aufgabe erzeugt wurde. */
+export function bekannteThemen(): Set<string> {
+  const raus = new Set<string>();
+  for (const t of holeAlleAufgaben()) {
+    for (const id of t.proposal.topicIds) raus.add(id);
+  }
+  return raus;
+}

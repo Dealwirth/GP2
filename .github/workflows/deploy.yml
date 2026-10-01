@@ -44,11 +44,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-        env:
-          # Der Schlüssel liegt als Repository-Secret und landet beim Bau in
-          # der Anwendung. Im Quelltext steht er nicht – GitHub verweigert
-          # sonst den Push (Push Protection).
-          VITE_GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -62,6 +62,11 @@ describe('Aufgabenvorrat', () => {
     //   offen / strukturiert   → Pflichtbegriffe, kein Optionsschlüssel
     for (const task of aufgaben) {
       const format = task.proposal.format;
+      if (task.interaktiv) {
+        // Interaktive Formate tragen ihre Lösung im Feld `interaktiv`.
+        expect(task.interaktiv.format, task.taskId).toBe(format);
+        continue;
+      }
       if (task.proposal.options && task.proposal.options.length > 0) {
         expect(task.proposal.options.length, task.taskId).toBeGreaterThanOrEqual(2);
         expect(task.correctOptionId, task.taskId).toBeDefined();

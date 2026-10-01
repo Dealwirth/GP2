@@ -1,23 +1,41 @@
 import type { RechenErgebnis, Rechenweg, Kennlinie } from '../engine/calc/index.ts';
 import {
   abschaltbedingung,
+  absicherungWaehlen,
+  amortisation,
+  blindleistung,
+  energiearbeit,
+  leistungDrehstrom,
+  leistungEinphasig,
+  leistungsfaktor,
+  motorstrom,
+  prozentwert,
+  pvErtrag,
+  querschnittAusSpannungsfall,
+  rcdStromAusMilliampere,
+  scheinleistung,
   schleifenwiderstandGrenze,
   spannungsfall,
+  spannungsfallDrehstrom,
   strombelastbarkeit,
+  strombelastbarkeitKorrigiert,
   stromDrehstrom,
   stromEinphasig,
+  stromkosten,
+  waermepumpeStrombedarf,
+  widerstandLeiter,
+  widerstandTemperatur,
 } from '../engine/calc/index.ts';
 import { holeFakt } from '../content/facts/index.ts';
-import type { Rezept } from '../ai/schemas.ts';
+import type { Rezept } from '../domain/aufgaben.ts';
 
 /**
  * Rezeptauflösung.
  *
- * Die KI wählt ein Rezept, das Engine ausführt. Daraus entsteht der richtige
- * Wert. Anschließend wird geprüft, ob genau eine Antwortmöglichkeit dazu passt.
- *
- * Damit gilt: Die KI kann eine Aufgabe erfinden, aber sie kann sie nicht
- * manipulieren. Stimmt das Ergebnis nicht zu den Optionen, wird verworfen.
+ * Ein Rezept beschreibt eine Rechenvorschrift; die Engine führt sie aus.
+ * Daraus entsteht der richtige Wert. Anschließend wird geprüft, ob genau eine
+ * Antwortmöglichkeit dazu passt. Stimmt das Ergebnis nicht zu den Optionen,
+ * wird die Aufgabe verworfen.
  */
 
 export interface AufgeloesteRechnung {
@@ -43,10 +61,29 @@ export function rezeptWerte(rezept: Rezept): string[] {
   };
   nimm(rezept.querschnittMm2);
   nimm(rezept.leistungW);
+  nimm(rezept.leistungKW);
   nimm(rezept.cosPhi);
   nimm(rezept.laengeM);
   nimm(rezept.stromA);
   nimm(rezept.inA);
+  nimm(rezept.stromkreise);
+  nimm(rezept.temperaturC);
+  nimm(rezept.wirkungsgrad);
+  nimm(rezept.widerstand20);
+  nimm(rezept.grenzProzent);
+  nimm(rezept.stunden);
+  nimm(rezept.kWh);
+  nimm(rezept.centProKwh);
+  nimm(rezept.investitionEuro);
+  nimm(rezept.jahresersparnisEuro);
+  nimm(rezept.heizlastKW);
+  nimm(rezept.vollbenutzungsstunden);
+  nimm(rezept.jaz);
+  nimm(rezept.leistungKWp);
+  nimm(rezept.ertragProKWp);
+  nimm(rezept.wert);
+  nimm(rezept.bezug);
+  nimm(rezept.milliampere);
   return werte;
 }
 
@@ -65,6 +102,14 @@ function faktWert(id: string | undefined, feld: string): number {
   return fakt.wert;
 }
 
+/** Fordert eine Zahl, die im Rezept gesetzt sein muss. */
+function pflicht(wert: number | undefined, feld: string): number {
+  if (wert === undefined || !Number.isFinite(wert)) {
+    throw new RezeptFehler(`${feld} fehlt.`);
+  }
+  return wert;
+}
+
 export function rechne(rezept: Rezept): AufgeloesteRechnung {
   switch (rezept.art) {
     case 'abschaltbedingung': {
@@ -76,6 +121,21 @@ export function rechne(rezept: Rezept): AufgeloesteRechnung {
       if (rezept.querschnittMm2 === undefined) throw new RezeptFehler('querschnittMm2 fehlt.');
       const weg: Rechenweg = rezept.weg ?? 'referenz-iz';
       return strombelastbarkeit({ querschnittMm2: rezept.querschnittMm2, weg });
+    }
+    case 'strombelastbarkeit-korrigiert': {
+      return strombelastbarkeitKorrigiert({
+        querschnittMm2: pflicht(rezept.querschnittMm2, 'querschnittMm2'),
+        verlegeart: rezept.verlegeart ?? 'C',
+        stromkreise: rezept.stromkreise,
+        temperaturC: rezept.temperaturC,
+      });
+    }
+    case 'absicherung-waehlen': {
+      return absicherungWaehlen({
+        stromA: pflicht(rezept.stromA, 'stromA'),
+        querschnittMm2: pflicht(rezept.querschnittMm2, 'querschnittMm2'),
+        verlegeart: rezept.verlegeart ?? 'C',
+      });
     }
     case 'strom-einphasig': {
       const uV = faktWert(rezept.u0FactId, 'u0FactId');
@@ -107,6 +167,27 @@ export function rechne(rezept: Rezept): AufgeloesteRechnung {
         laengeM: rezept.laengeM,
         stromA: rezept.stromA,
         querschnittMm2: rezept.querschnittMm2,
+        u0: rezept.u0FactId ? faktWert(rezept.u0FactId, 'u0FactId') : undefined,
+        cosPhi: rezept.cosPhi,
+      });
+    }
+    case 'spannungsfall-drehstrom': {
+      return spannungsfallDrehstrom({
+        laengeM: pflicht(rezept.laengeM, 'laengeM'),
+        stromA: pflicht(rezept.stromA, 'stromA'),
+        querschnittMm2: pflicht(rezept.querschnittMm2, 'querschnittMm2'),
+        u0: rezept.u0FactId ? faktWert(rezept.u0FactId, 'u0FactId') : undefined,
+        cosPhi: rezept.cosPhi,
+      });
+    }
+    case 'querschnitt-spannungsfall': {
+      return querschnittAusSpannungsfall({
+        leistungW: pflicht(rezept.leistungW, 'leistungW'),
+        laengeM: pflicht(rezept.laengeM, 'laengeM'),
+        uV: rezept.u0FactId ? faktWert(rezept.u0FactId, 'u0FactId') : 230,
+        cosPhi: rezept.cosPhi,
+        grenzProzent: rezept.grenzProzent,
+        drehstrom: rezept.drehstrom ?? false,
       });
     }
     case 'schleifenwiderstand': {
@@ -124,6 +205,15 @@ export function rechne(rezept: Rezept): AufgeloesteRechnung {
       if (fakt.wert === undefined) {
         throw new RezeptFehler(`Fakt ${fakt.id} hat keinen Zahlenwert.`);
       }
+      // Tabellenfakten tragen ihren Wert nur im Bemerkungstext (wert = 0 ist
+      // ein Platzhalter). Als Einzelwert abgefragt ergäbe das die absurde
+      // Aufgabe „Wie groß ist I_z? – 0 A". Solche Fakten sind nur als
+      // Bezugsgröße in einem Rezept brauchbar.
+      if (fakt.wert === 0 && /werttabelle|siehe/i.test(fakt.einheit ?? '')) {
+        throw new RezeptFehler(
+          `Fakt ${fakt.id} ist eine Werttabelle und hat keinen einzelnen Zahlenwert.`,
+        );
+      }
       return {
         wert: fakt.wert,
         einheit: fakt.einheit ?? '',
@@ -138,6 +228,101 @@ export function rechne(rezept: Rezept): AufgeloesteRechnung {
           },
         ],
       };
+    }
+    case 'leistung-einphasig': {
+      return leistungEinphasig({
+        stromA: pflicht(rezept.stromA, 'stromA'),
+        uV: rezept.u0FactId ? faktWert(rezept.u0FactId, 'u0FactId') : 230,
+        cosPhi: rezept.cosPhi ?? 1,
+      });
+    }
+    case 'leistung-drehstrom': {
+      return leistungDrehstrom({
+        stromA: pflicht(rezept.stromA, 'stromA'),
+        uV: rezept.u0FactId ? faktWert(rezept.u0FactId, 'u0FactId') : 400,
+        cosPhi: rezept.cosPhi ?? 1,
+      });
+    }
+    case 'scheinleistung': {
+      return scheinleistung({
+        stromA: pflicht(rezept.stromA, 'stromA'),
+        uV: rezept.u0FactId ? faktWert(rezept.u0FactId, 'u0FactId') : 230,
+        drehstrom: rezept.drehstrom ?? false,
+      });
+    }
+    case 'blindleistung': {
+      return blindleistung({
+        scheinleistungVA: pflicht(rezept.wert, 'wert (Scheinleistung)'),
+        cosPhi: pflicht(rezept.cosPhi, 'cosPhi'),
+      });
+    }
+    case 'leistungsfaktor': {
+      return leistungsfaktor({
+        wirkleistungW: pflicht(rezept.wert, 'wert (Wirkleistung)'),
+        scheinleistungVA: pflicht(rezept.bezug, 'bezug (Scheinleistung)'),
+      });
+    }
+    case 'widerstand-leiter': {
+      return widerstandLeiter({
+        laengeM: pflicht(rezept.laengeM, 'laengeM'),
+        querschnittMm2: pflicht(rezept.querschnittMm2, 'querschnittMm2'),
+      });
+    }
+    case 'widerstand-temperatur': {
+      return widerstandTemperatur({
+        widerstand20: pflicht(rezept.widerstand20, 'widerstand20'),
+        temperaturC: pflicht(rezept.temperaturC, 'temperaturC'),
+      });
+    }
+    case 'energiearbeit': {
+      return energiearbeit({
+        leistungW: pflicht(rezept.leistungW, 'leistungW'),
+        stunden: pflicht(rezept.stunden, 'stunden'),
+      });
+    }
+    case 'stromkosten': {
+      return stromkosten({
+        kWh: pflicht(rezept.kWh, 'kWh'),
+        centProKwh: pflicht(rezept.centProKwh, 'centProKwh'),
+      });
+    }
+    case 'amortisation': {
+      return amortisation({
+        investitionEuro: pflicht(rezept.investitionEuro, 'investitionEuro'),
+        jahresersparnisEuro: pflicht(rezept.jahresersparnisEuro, 'jahresersparnisEuro'),
+      });
+    }
+    case 'waermepumpe-strombedarf': {
+      return waermepumpeStrombedarf({
+        heizlastKW: pflicht(rezept.heizlastKW, 'heizlastKW'),
+        vollbenutzungsstunden: pflicht(rezept.vollbenutzungsstunden, 'vollbenutzungsstunden'),
+        jaz: pflicht(rezept.jaz, 'jaz'),
+      });
+    }
+    case 'pv-ertrag': {
+      return pvErtrag({
+        leistungKWp: pflicht(rezept.leistungKWp, 'leistungKWp'),
+        ertragProKWp: pflicht(rezept.ertragProKWp, 'ertragProKWp'),
+      });
+    }
+    case 'prozentwert': {
+      return prozentwert({
+        wert: pflicht(rezept.wert, 'wert'),
+        bezug: pflicht(rezept.bezug, 'bezug'),
+      });
+    }
+    case 'motorstrom': {
+      return motorstrom({
+        leistungKW: pflicht(rezept.leistungKW, 'leistungKW'),
+        uV: rezept.u0FactId ? faktWert(rezept.u0FactId, 'u0FactId') : 400,
+        cosPhi: rezept.cosPhi ?? 0.85,
+        wirkungsgrad: rezept.wirkungsgrad ?? 0.9,
+      });
+    }
+    case 'rcd-strom': {
+      return rcdStromAusMilliampere({
+        milliampere: pflicht(rezept.milliampere, 'milliampere'),
+      });
     }
     default:
       throw new RezeptFehler(`Unbekannte Rezeptart ${(rezept as Rezept).art}`);
@@ -198,6 +383,11 @@ function zerlegeOption(text: string): {
   };
 }
 
+/** Liest den Zahlenwert aus einem Optionstext (ohne Vorsatz-Auflösung). */
+export function zahlAusText(text: string): number | null {
+  return zerlegeOption(text).zahl;
+}
+
 /**
  * Steht in der Option nur der Wert – oder eine Aussage *über* den Wert?
  *
@@ -246,6 +436,46 @@ export interface Optionsabgleich {
   korrektOptionId: string | null;
   passende: string[];
   erkannterWert: number;
+}
+
+/**
+ * Formatiert einen Rechenwert so, wie er als Antwortoption erscheint.
+ *
+ * Die Stellenzahl richtet sich nach der Größe: 46 Ω braucht keine Nachkomma-
+ * stellen, 0,80 Ω schon. Ohne diese Staffelung stünde bei einem kleinen Wert
+ * „0,1 Ω" (richtig gerundet), während das Modell „0,10 Ω" schreibt – beide
+ * sind dasselbe, sähen aber verschieden aus.
+ */
+export function formatiereWert(wert: number, einheit: string): string {
+  const betrag = Math.abs(wert);
+  // Die Engine rundet ihre Ergebnisse auf eine Nachkommastelle. Die Anzeige
+  // darf nicht stärker runden – sonst stünde in der Aufgabe eine Zahl, die
+  // die Engine nie erzeugt hat (aus 166,7 würde 167), und die Faktenbindung
+  // verwürfe die Aufgabe. Ganze Werte bleiben ganz, sonst eine Stelle, bei
+  // kleinen Werten zwei.
+  const stellen = Number.isInteger(wert) ? 0 : betrag >= 10 ? 1 : 2;
+  return `${wert.toFixed(stellen).replace('.', ',')} ${einheit}`.trim();
+}
+
+/**
+ * Zwei falsche, aber plausible Werte rund um das richtige Ergebnis.
+ *
+ * Der Abstand ist grob genug, dass keine Verwechslung entsteht (Faktor 2 bzw.
+ * 0,5), und beide bleiben positiv. Sie sind damit klar falsch, aber nicht
+ * abwegig – genau das, was eine MC-Aufgabe braucht.
+ */
+export function distraktorWerte(wert: number): number[] {
+  const raus: number[] = [];
+  const gesehen = new Set<number>();
+  for (const faktor of [0.5, 2, 0.8, 1.25]) {
+    const kandidat = Number((wert * faktor).toFixed(4));
+    if (kandidat > 0 && kandidat !== wert && !gesehen.has(kandidat)) {
+      gesehen.add(kandidat);
+      raus.push(kandidat);
+    }
+    if (raus.length === 2) break;
+  }
+  return raus;
 }
 
 /**

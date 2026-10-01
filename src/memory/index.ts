@@ -8,11 +8,11 @@ import type { Pruefungsergebnis } from '../domain/exam/simulation.ts';
  * Lerngedächtnis.
  *
  * Zwei Ebenen, sauber getrennt:
- *   (a) Wissen in `content/` – für die KI schreibgeschützt
+ *   (a) Wissen in `content/` – schreibgeschützt
  *   (b) Lernfortschritt hier – wird automatisch geschrieben und überwacht
  *
- * Die KI darf in (b) schreiben, aber nur in Form von Insights und Plänen.
- * Sie kann damit den Lernpfad steuern, aber kein Prüfungswissen verändern.
+ * Die Überwachung schreibt nur in (b), in Form von Insights und Plänen. Sie
+ * kann damit den Lernpfad steuern, aber kein Prüfungswissen verändern.
  */
 
 export type InsightTyp =
@@ -54,9 +54,8 @@ export interface Digest {
 /**
  * Verdichtet den Lernstand zu einem kompakten Überblick.
  *
- * Der Digest ist bewusst klein gehalten – er ist der Kontext, den die KI bei
- * jeder Aufgabe liest. Ein zu großer Digest würde die kostenlosen Rate-Limits
- * sprengen und die Antworten schlechter machen.
+ * Der Digest ist bewusst klein gehalten – er ist die Kennzahl, aus der die
+ * Lernberatung und der Fortschritt entstehen.
  */
 export function baueDigest(
   zustaende: Map<string, TopicStateRecord>,
@@ -107,7 +106,7 @@ export function baueDigest(
 }
 
 /**
- * Die KI-Überwachung.
+ * Die Lernüberwachung.
  *
  * Sie erkennt Muster im eigenen Lernverlauf: Fortschritt, Stillstand, Widersprüche
  * zwischen Trefferquote und Selbstvertrauen, verfallendes Wissen und Themen, die

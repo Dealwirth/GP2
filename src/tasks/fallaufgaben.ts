@@ -58,7 +58,7 @@ export function aufgabeAusFall(quelle: Fallaufgabe): Task {
     validierungsOptionen: {
       // Situation und Ausgangslage sind von Hand gesetzt – ihre Zahlen sind
       // vorgegebene Angaben, keine Behauptung über eine Norm. Sie werden
-      // deshalb als belegt erklärt. Für KI-Aufgaben gilt das ausdrücklich nicht.
+      // deshalb als belegt erklärt. Für erzeugte Aufgaben gilt das nicht.
       vorgegebeneWerte: [
         ...sammleZahlenAusText(quelle.situation),
         ...quelle.ausgangslage.flatMap((a) => sammleZahlenAusText(a.wert)),

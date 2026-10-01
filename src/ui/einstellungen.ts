@@ -6,12 +6,6 @@
  */
 
 import {
-  DIRECT_GROQ_URL,
-  EINGEBAUTER_SCHLUESSEL,
-  STANDARD_MODELL,
-  type AiEinstellungen,
-} from '../ai/client.ts';
-import {
   entschluessle,
   istHuelle,
   KRYPTO_FORMAT,
@@ -21,38 +15,24 @@ import {
 const SCHLUESSEL = 'egt-einstellungen';
 
 export interface Einstellungen {
-  /** Optionaler eigener Schlüssel. Ohne ihn gilt der eingebaute. */
-  groqKey: string;
-  modelle: string[];
-  /** KI-Aufgaben erzeugen lassen. */
-  kiAktiv: boolean;
-  /** Zweitprüfung durch ein zweites Modell – kostet Zeit, spart Fehler. */
-  zweitpruefung: boolean;
   /**
-   * Wie viele Aufgaben im Hintergrund bereitliegen sollen.
+   * Wie viele Aufgaben im Vorrat bereitliegen sollen.
    *
-   * Ein Vorrat macht den Start einer Runde schnell, kostet aber beim ersten
-   * Öffnen Anfragen. Wer sein Kontingent schonen will, stellt hier kleiner.
+   * Ein Vorrat macht den Start einer Runde schnell. Da die Aufgaben auf dem
+   * Gerät entstehen, kostet er nichts außer etwas Rechenzeit.
    */
   vorrat: number;
-  /** Prüfungstermine überschreiben, falls die IHK sie ändert. */
+  /** Prüfungstermine überschreiben, falls sich die Termine ändern. */
   pruefungsdatumSchriftlich: string;
   pruefungsdatumPraktisch: string;
-  /** Eigenen Korrekturhinweis der KI geben. */
-  eigenerCoachHinweis: string;
   /** Erinnerung an die tägliche Session. */
   taeglicheErinnerung: boolean;
 }
 
 export const STANDARDEINSTELLUNGEN: Einstellungen = {
-  groqKey: EINGEBAUTER_SCHLUESSEL,
-  modelle: [STANDARD_MODELL, 'openai/gpt-oss-20b'],
-  kiAktiv: true,
-  zweitpruefung: true,
-  vorrat: 10,
+  vorrat: 6,
   pruefungsdatumSchriftlich: '2027-05-11',
   pruefungsdatumPraktisch: '2027-06-07',
-  eigenerCoachHinweis: '',
   taeglicheErinnerung: false,
 };
 
@@ -72,30 +52,6 @@ export function speichereEinstellungen(einstellungen: Einstellungen): void {
   localStorage.setItem(SCHLUESSEL, JSON.stringify(einstellungen));
 }
 
-/** Ist die KI überhaupt nutzbar? Sonst stellt sie keine Aufgaben. */
-export function kiBereit(einstellungen: Einstellungen): boolean {
-  return einstellungen.kiAktiv;
-}
-
-/**
- * Übersetzt die Seiteneinstellungen in die Einstellungen der KI-Schicht.
- *
- * Es gibt bewusst zwei Typen: Die Seite kennt Formularfelder, die KI-Schicht
- * nur, was sie zum Aufrufen braucht. Die Umrechnung steht an einer Stelle –
- * sonst müsste jeder Aufruf wissen, welches Feld wohin gehört, und ein
- * umbenanntes Feld bräche die KI an mehreren Stellen gleichzeitig.
- */
-export function aiEinstellungenAus(einstellungen: Einstellungen): AiEinstellungen {
-  return {
-    proxyUrl: DIRECT_GROQ_URL,
-    apiKey: einstellungen.groqKey.trim() || EINGEBAUTER_SCHLUESSEL,
-    modell: einstellungen.modelle[0] ?? STANDARD_MODELL,
-    aktiv: kiBereit(einstellungen),
-    zweitpruefung: einstellungen.zweitpruefung,
-    zweitModell: einstellungen.modelle[1],
-  };
-}
-
 /**
  * Verschlüsselter Export.
  *
@@ -106,7 +62,7 @@ export function aiEinstellungenAus(einstellungen: Einstellungen): AiEinstellunge
 export interface ExportPaket {
   formatVersion: 1;
   erstelltAm: string;
-  einstellungen: Omit<Einstellungen, 'groqKey'>;
+  einstellungen: Einstellungen;
   zustaende: unknown;
   versuche: unknown;
   sitzungen: unknown;
@@ -114,8 +70,7 @@ export interface ExportPaket {
   pruefsumme: string;
 }
 
-/** Ein Backup enthält den Schlüssel nicht – er steht im Quellcode. */
-export type ExportEinstellungen = Omit<Einstellungen, 'groqKey'>;
+export type ExportEinstellungen = Einstellungen;
 
 export async function erzeugeExport(
   daten: Omit<ExportPaket, 'formatVersion' | 'erstelltAm' | 'pruefsumme'>,

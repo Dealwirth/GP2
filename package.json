@@ -12,8 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "facts:check": "tsx scripts/facts-report.ts",
-    "aufgaben:check": "tsx scripts/coverage-report.ts",
-    "ki:test": "tsx scripts/ki-selbsttest.ts"
+    "aufgaben:check": "tsx scripts/coverage-report.ts"
   },
   "dependencies": {
     "react": "^19.0.0",

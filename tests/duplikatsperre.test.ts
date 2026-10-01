@@ -4,7 +4,7 @@ import { baueTask, leereDuplikatspeicher, parameterHash } from '../src/validatio
 /**
  * Regression zur Duplikatsperre.
  *
- * Der Fehler: Der Parameter-Hash einer KI-Aufgabe wurde schon beim Bestehen
+ * Der Fehler: Der Parameter-Hash einer erzeugten Aufgabe wurde schon beim Bestehen
  * der Prüfliste eingetragen – auch dann, wenn der Vorschlag anschließend an
  * der Zweitprüfung scheiterte. Er blockierte damit für den Rest der Sitzung
  * seine eigene Parameterkombination. Genau das ließ die Aufgabenerzeugung
@@ -43,7 +43,7 @@ function bausatz(hashTeil: string, zweitpruefung?: { bestanden: boolean; detail:
   };
 }
 
-describe('Duplikatsperre für KI-Aufgaben', () => {
+describe('Duplikatsperre für erzeugte Aufgaben', () => {
   it('verwirft dieselbe Parameterkombination erst, wenn sie eine Aufgabe ergeben hat', () => {
     leereDuplikatspeicher();
     expect(baueTask(bausatz('a')).taskId).toBeTruthy();

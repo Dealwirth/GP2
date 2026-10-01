@@ -2,6 +2,10 @@ import type { Fact } from '../../domain/types.ts';
 import { FAKTEN_FORMELN } from './v1.0/formeln.ts';
 import { FAKTEN_LEITUNGEN } from './v1.0/leitungen.ts';
 import { FAKTEN_SCHUTZ } from './v1.0/schutz.ts';
+import { FAKTEN_TABELLEN } from './v1.0/tabellen.ts';
+import { FAKTEN_WISSEN_TECHNIK } from './v1.0/wissen-technik.ts';
+import { FAKTEN_WISSEN_GEBAEUDE } from './v1.0/wissen-gebaeude.ts';
+import { FAKTEN_WISSEN_WISO } from './v1.0/wissen-wiso.ts';
 
 /**
  * Aktive Version der Faktenbasis.
@@ -16,6 +20,10 @@ export const FAKTEN: Fact[] = [
   ...FAKTEN_SCHUTZ,
   ...FAKTEN_LEITUNGEN,
   ...FAKTEN_FORMELN,
+  ...FAKTEN_TABELLEN,
+  ...FAKTEN_WISSEN_TECHNIK,
+  ...FAKTEN_WISSEN_GEBAEUDE,
+  ...FAKTEN_WISSEN_WISO,
 ];
 
 const NACH_ID = new Map<string, Fact>(FAKTEN.map((f) => [f.id, f]));

@@ -44,11 +44,6 @@ self.addEventListener('fetch', (ereignis) => {
 
   const url = new URL(anfrage.url);
 
-  // KI-Endpunkte niemals anfassen.
-  if (url.pathname.includes('/api/') || url.hostname.includes('groq.com')) {
-    return;
-  }
-
   // Nur eigene Herkunft.
   if (url.origin !== self.location.origin) return;
 

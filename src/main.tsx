@@ -15,8 +15,7 @@ createRoot(wurzel).render(
   </StrictMode>,
 );
 
-// Offline-Nutzung als installierbare App. Ohne Netz bleibt alles außer der
-// KI-Aufgabenerzeugung funktionsfähig.
+// Offline-Nutzung als installierbare App. Ohne Netz bleibt alles funktionsfähig.
 if ('serviceWorker' in navigator && location.protocol !== 'blob:') {
   addEventListener('load', () => {
     void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).then((reg) => {

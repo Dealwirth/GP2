@@ -12,10 +12,8 @@ import { Einstellungen } from './ui/seiten/Einstellungen.tsx';
 import { Tabellen } from './ui/seiten/Tabellen.tsx';
 import { tageBis, naechsterTermin } from './domain/termine.ts';
 import { faktBericht } from './content/facts/index.ts';
-import { KiKurzzeile, useKiStatus } from './ui/KiStatus.tsx';
 import { Vorratszeile } from './ui/Vorratszeile.tsx';
-/* Die Sync-Schicht ist entfernt; der Kopf zeigt nur noch den KI-Zustand. */
-import { aiEinstellungenAus } from './ui/einstellungen.ts';
+import { fuelleVorratAuf, fuelleVorratMitSeed } from './tasks/vorrat.ts';
 
 /**
  * Rahmen der Anwendung.
@@ -26,12 +24,40 @@ import { aiEinstellungenAus } from './ui/einstellungen.ts';
 export default function App() {
   const [seite, wechsle] = useRouter();
   const store = useStore();
-  const { zustand, pruefeVerbindung } = useKiStatus();
-  const ai = aiEinstellungenAus(store.einstellungen);
 
   useEffect(() => {
     document.documentElement.dataset.seite = seite;
   }, [seite]);
+
+  // Vorrat vorwärmen, sobald der Lernstand geladen ist.
+  //
+  // Der Lauf wird aus dem Rendern herausgehalten. Er baut ein Fenster über
+  // viele Themen und kostet je nach Datenstand einige Millisekunden – im
+  // Hauptstrang verzögert das den ersten Anstrich. `requestIdleCallback`
+  // schiebt ihn in die Leerlaufzeit; wo es das nicht gibt (Safari), springt
+  // ein kurzer Timer ein. `fuelleVorratAuf` stößt ihn ohnehin erneut an,
+  // wenn der Vorrat noch nicht steht.
+  useEffect(() => {
+    if (!store.geladen) return;
+    const ziel = store.einstellungen.vorrat;
+    const seedLauf = (): void => {
+      try {
+        fuelleVorratMitSeed(ziel);
+      } catch {
+        // Der Seed-Vorrat ist die letzte Netzstufe – scheitert er, läuft der
+        // Rest weiter. Die App darf daran nicht stehenbleiben.
+      }
+    };
+    const planer = (globalThis as { requestIdleCallback?: (cb: () => void) => number })
+      .requestIdleCallback;
+    if (typeof planer === 'function') {
+      planer(seedLauf);
+    } else {
+      setTimeout(seedLauf, 0);
+    }
+
+    void fuelleVorratAuf(ziel);
+  }, [store.geladen, store.einstellungen]);
 
   const termin = naechsterTermin();
   const bericht = faktBericht();
@@ -43,10 +69,6 @@ export default function App() {
         <h1>EGT-Prüfungstrainer</h1>
         <span className="kopfRechts">
           <Vorratszeile store={store} />
-          {/* Der KI-Zustand gehört sichtbar in den Kopf, nicht in die
-              Einstellungen: Wenn nichts geht, soll man das sehen, ohne zu
-              suchen. Der Klick führt direkt zur Prüfstelle. */}
-          <KiKurzzeile zustand={zustand} onKlick={() => void pruefeVerbindung(ai)} />
           <span className="stand">
             {termin && tage !== null ? `${tage} T` : 'Teil 2'}
           </span>

@@ -53,7 +53,7 @@ export interface ValidierungsOptionen {
    * Werte, die in der Aufgabenstellung selbst vorgegeben sind.
    *
    * Wichtig: Diese Liste dürfen nur die kuratierten, festen Aufgaben benutzen.
-   * Eine KI-Aufgabe bekommt sie nicht – sonst wäre sie ein Schlupfloch, um
+   * Eine erzeugte Aufgabe bekommt sie nicht – sonst wäre sie ein Schlupfloch, um
    * erfundene Normzahlen als „vorgegeben" zu deklarieren.
    */
   vorgegebeneWerte?: string[];
@@ -74,7 +74,7 @@ export interface ValidierungsOptionen {
    * Duplikatsperre abschalten.
    *
    * Nur für den deterministischen Aufgabenvorrat. Die Sperre soll verhindern,
-   * dass die KI dieselbe Aufgabe zweimal erfindet. Für den festen Vorrat ist sie
+   * dass dieselbe Aufgabe zweimal entsteht. Für den festen Vorrat ist sie
    * sinnlos – und schädlich, weil der Vorrat bei jedem Sitzungsstart neu
    * gebaut wird und beim zweiten Mal als Duplikat abgewiesen würde.
    */
@@ -86,7 +86,7 @@ export interface ValidierungsErgebnis {
   bestanden: boolean;
 }
 
-/** Zahlen, die in einer KI-Aufgabe ohne Faktbindung nicht auftauchen dürfen. */
+/** Zahlen, die in einer Aufgabe ohne Faktbindung nicht auftauchen dürfen. */
 const ZAHLENMUSTER = /(?<![\w.,])(\d+([.,]\d+)?)(?![\w])/g;
 
 /**
@@ -173,7 +173,13 @@ export function pruefeFaktenbindung(
       }
     }
     // Querschnitte, Kennlinien und Grenzwerte stehen im erläuternden Text.
-    for (const z of sammleZahlen(fakt.bemerkung ?? '')) {
+    // Auch die Bezeichnung zählt: Sie benennt den Geltungsbereich des Fakts
+    // („Isolationswiderstand – Mindestwert bei Prüfspannung 500 V DC"), und
+    // diese Zahl ist Teil der Normaussage, keine freie Erfindung.
+    for (const z of [
+      ...sammleZahlen(fakt.bemerkung ?? ''),
+      ...sammleZahlen(fakt.bezeichnung ?? ''),
+    ]) {
       const wert = alsZahl(z);
       if (wert !== null) gebunden.add(runde(wert));
     }
@@ -214,6 +220,27 @@ function pruefeSchema(proposal: TaskProposal): ValidationCheck {
   if (proposal.topicIds.length === 0) probleme.push('Keinem Thema zugeordnet');
   if (proposal.format === 'mc' && (proposal.options?.length ?? 0) < 2) {
     probleme.push('Multiple Choice braucht mindestens zwei Antwortmöglichkeiten');
+  }
+  if (proposal.format === 'multi' && (proposal.options?.length ?? 0) < 3) {
+    probleme.push('Mehrfachauswahl braucht mindestens drei Antwortmöglichkeiten');
+  }
+  if (proposal.format === 'zuordnung' && (proposal.interaktiv?.paare?.length ?? 0) < 2) {
+    probleme.push('Zuordnung braucht mindestens zwei Paare');
+  }
+  if (proposal.format === 'reihenfolge' && (proposal.interaktiv?.schritte?.length ?? 0) < 3) {
+    probleme.push('Reihenfolge braucht mindestens drei Schritte');
+  }
+  if (proposal.format === 'zahl' && proposal.interaktiv?.wert === undefined) {
+    probleme.push('Zahlenaufgabe braucht einen Lösungswert');
+  }
+  if (proposal.format === 'luecke' && (proposal.interaktiv?.luecken?.length ?? 0) < 1) {
+    probleme.push('Lückentext braucht mindestens eine Lücke');
+  }
+  if (
+    proposal.format === 'multi' &&
+    (proposal.interaktiv?.richtigIds?.length ?? 0) < 1
+  ) {
+    probleme.push('Mehrfachauswahl braucht mindestens eine richtige Option');
   }
   // Offene Aufgaben lassen sich nur bewerten, wenn feststeht, wonach gesucht
   // wird. Ohne Stichwortliste wäre jede Teilpunktzahl erfunden.
@@ -280,8 +307,7 @@ function pruefeDuplikat(paramsHash: string, pruefen: boolean): ValidationCheck {
  *
  * Bestehende Prüfungsvorgänge werden protokolliert, aber nicht selbst
  * ausgeführt: die rechnerische Prüfung liegt in `engine/calc`, die
- * Selbstprüfung und Zweitprüfung der KI laufen außerhalb und werden als
- * Ergebnis übergeben.
+ * Eine externe Zweitprüfung läuft außerhalb und wird als Ergebnis übergeben.
  */
 export function validiere(
   proposal: TaskProposal,
@@ -338,6 +364,8 @@ export interface TaskBausatz {
   solutionText?: string;
   solutionSteps?: Task['solutionSteps'];
   explanation: string;
+  /** Interaktive Frage- und Lösungsdaten – nur für die interaktiven Formate. */
+  interaktiv?: import('../domain/types.ts').InteraktiveAufgabe;
   validierungsOptionen?: ValidierungsOptionen;
 }
 
@@ -357,11 +385,23 @@ export function baueTask(bausatz: TaskBausatz): Task {
     }
   }
 
+  // Für interaktive Formate gilt die Lösung im Vorschlag als belegt: Sie ist
+  // die vom Aufgabenautor festgelegte Antwort und darf im Text stehen.
+  const interaktivWerte: string[] = [];
+  const iv = bausatz.proposal.interaktiv;
+  if (iv) {
+    if (iv.wert !== undefined) interaktivWerte.push(String(iv.wert));
+    for (const s of iv.schritte ?? []) interaktivWerte.push(...sammleZahlen(s));
+    for (const p of iv.paare ?? []) interaktivWerte.push(...sammleZahlen(`${p.links} ${p.rechts}`));
+    for (const l of iv.luecken ?? []) interaktivWerte.push(...sammleZahlen(l.loesung));
+  }
+
   const { record, bestanden } = validiere(bausatz.proposal, bausatz.paramsHash, {
     ...bausatz.validierungsOptionen,
     engineWerte: [...engineWerte],
     korrektOptionId: bausatz.correctOptionId,
-    // Deterministische Aufgaben werden nicht gegen die KI-Duplikatsperre
+    vorgegebeneWerte: [...(bausatz.validierungsOptionen?.vorgegebeneWerte ?? []), ...interaktivWerte],
+    // Deterministische Aufgaben werden nicht gegen die Duplikatsperre
     // geprüft: sie sind fest und werden bei jeder Sitzung neu gebaut.
     duplikatPruefen: bausatz.validierungsOptionen?.duplikatPruefen ?? false,
   });
@@ -383,6 +423,7 @@ export function baueTask(bausatz: TaskBausatz): Task {
     taskId: `t_${bausatz.paramsHash}`,
     proposal: bausatz.proposal,
     correctOptionId: bausatz.correctOptionId,
+    interaktiv: bausatz.interaktiv,
     optionRationale: bausatz.optionRationale,
     solutionText: bausatz.solutionText,
     solutionSteps: bausatz.solutionSteps ?? [],

@@ -1,14 +1,15 @@
 import type { ExamArea, Task } from '../../domain/types.ts';
 import { PRUEFUNGSBEREICHE, TEIL2_BEREICHE } from '../../content/syllabus/exam.ts';
 import { bewerteNachParagraf15, punkteZuNote, type BestehensUrteil } from '../../content/syllabus/exam.ts';
-import { abdeckung, atomeVonBereich, reife, schwacheThemen } from '../../content/curriculum/index.ts';
+import { abdeckung, holeAtom, reife, schwacheThemen } from '../../content/curriculum/index.ts';
+import { bewerte, type Antwort } from '../../domain/interaktiv.ts';
 import type { TopicStateRecord } from '../../domain/types.ts';
 
 /**
  * Prüfungssimulation.
  *
  * Zwei Ziele gleichzeitig: den echten Prüfungseindruck erzeugen und eine
- * belastbare Prognose liefern. Der Prüfungsmodus schaltet die KI ab – keine
+ * belastbare Prognose liefern. Der Prüfungsmodus schaltet alle Hilfen ab – keine
  * Hinweise, keine Sofortlösung, Auswertung erst nach Abgabe.
  */
 
@@ -180,21 +181,55 @@ export function berechnePrognose(
   };
 }
 
-/** Verteilt Aufgaben eines Bereichs möglichst gleichmäßig über die Kapitel. */
+/**
+ * Prüfbar heißt: Die Aufgabe lässt sich am Bildschirm beantworten.
+ *
+ * Offene und Fallaufgaben verlangen eine Ausarbeitung; in der Simulation
+ * würden sie als leere Seite erscheinen, weil es dort kein Freitextfeld gibt.
+ * Interaktive Formate und Multiple Choice sind beantwortbar.
+ */
+function istPruefbar(task: Task): boolean {
+  if (task.interaktiv) return true;
+  return (task.proposal.options?.length ?? 0) > 0;
+}
+
+/**
+ * Verteilt Aufgaben eines Bereichs möglichst gleichmäßig über die Kapitel und
+ * mischt dabei die Antwortformate.
+ *
+ * Zwei Dinge sind hier Absicht:
+ *
+ *   Nach Kapitel, nicht nach Thema. Vorher war der Eimer ein einzelnes Thema.
+ *   Bei zwölf Prüfungsaufgaben und weit mehr Themen füllte der erste Durchlauf
+ *   alle Plätze mit je einer Aufgabe aus zwölf verschiedenen Themen – und weil
+ *   die gerechneten Multiple-Choice-Aufgaben zuerst im Vorrat stehen, bestand
+ *   die Prüfung nur aus Ankreuzfragen. Die interaktiven Formate kamen nie dran.
+ *
+ *   Formate reihum. Innerhalb eines Kapitels wird abwechselnd eine Aufgabe je
+ *   Format eingereiht. Sonst drängen die zahlreichen Richtig/Falsch-Aufgaben
+ *   die Zuordnungen und Reihenfolgen an das Ende, wo sie nicht mehr zum Zug
+ *   kommen.
+ */
 export function verteileAufgaben(
   bereich: ExamArea,
   verfuegbar: Task[],
   anzahl: number,
 ): Task[] {
-  const atome = atomeVonBereich(bereich);
   const proKapitel = new Map<string, Task[]>();
-  for (const task of verfuegbar.filter((t) => t.proposal.examArea === bereich)) {
-    const id = task.proposal.topicIds[0] ?? task.proposal.examArea;
+  for (const task of verfuegbar.filter(
+    (t) => t.proposal.examArea === bereich && istPruefbar(t),
+  )) {
+    const atom = holeAtom(task.proposal.topicIds[0] ?? '');
+    const id = atom?.kapitelId ?? task.proposal.topicIds[0] ?? task.proposal.examArea;
     proKapitel.set(id, [...(proKapitel.get(id) ?? []), task]);
   }
 
   const auswahl: Task[] = [];
-  const eimer = [...proKapitel.entries()].map(([id, liste]) => ({ id, liste, index: 0 }));
+  const eimer = [...proKapitel.entries()].map(([id, liste]) => ({
+    id,
+    liste: nachFormatenGemengt(liste),
+    index: 0,
+  }));
   let fortgesetzt = true;
   while (auswahl.length < anzahl && fortgesetzt) {
     fortgesetzt = false;
@@ -207,6 +242,87 @@ export function verteileAufgaben(
       if (!auswahl.includes(task)) auswahl.push(task);
     }
   }
-  void atome;
   return auswahl;
+}
+
+/** Reiht die Aufgaben so, dass die Formate abwechseln statt sich zu stauen. */
+function nachFormatenGemengt(liste: Task[]): Task[] {
+  const jeFormat = new Map<string, Task[]>();
+  for (const task of liste) {
+    const f = task.proposal.format;
+    jeFormat.set(f, [...(jeFormat.get(f) ?? []), task]);
+  }
+  const spuren = [...jeFormat.values()];
+  const gemengt: Task[] = [];
+  for (let i = 0; gemengt.length < liste.length; i += 1) {
+    let etwas = false;
+    for (const spur of spuren) {
+      const task = spur[i];
+      if (!task) continue;
+      etwas = true;
+      gemengt.push(task);
+    }
+    if (!etwas) break;
+  }
+  return gemengt;
+}
+
+/** Die Antworten eines Durchgangs, so wie sie im Speicher liegen. */
+export type GespeicherteAntworten = Record<string, string>;
+
+/** Eine gespeicherte Antwort zurücklesen; beschädigter Inhalt zählt als leer. */
+export function leseAntwort(roh: string | undefined): Antwort | null {
+  if (roh === undefined) return null;
+  try {
+    return JSON.parse(roh) as Antwort;
+  } catch {
+    return null;
+  }
+}
+
+/** Eine Antwort als Zeichenkette ablegen – so übersteht sie ein Neuladen. */
+export function schreibeAntwort(a: Antwort): string {
+  return JSON.stringify(a);
+}
+
+export interface Pruefungsbilanz {
+  /** Zahl der vollständig richtigen Aufgaben. */
+  richtig: number;
+  /** Beantwortet, aber nicht vollständig richtig. */
+  falsch: Task[];
+  /** Gar nicht beantwortet. */
+  offen: Task[];
+  /** Themen aus falschen und offenen Aufgaben – die Wiederholungsliste. */
+  schwacheThemenIds: string[];
+}
+
+/**
+ * Zählt einen Durchgang aus.
+ *
+ * Die Bewertung liegt bei `bewerte`, nicht bei einem Vergleich der
+ * Optionskennungen. Nur so zählen auch die interaktiven Formate, und für ein
+ * Zuordnungs- oder Lückentext-Ergebnis gibt es keine Kennung, die man
+ * vergleichen könnte. Richtig ist eine Aufgabe erst, wenn alles stimmt –
+ * Teilpunkte gibt es in der echten Prüfung auch nicht.
+ */
+export function bilanzieren(
+  aufgaben: Task[],
+  antworten: GespeicherteAntworten,
+): Pruefungsbilanz {
+  const falsch: Task[] = [];
+  let richtig = 0;
+  for (const t of aufgaben) {
+    const roh = antworten[t.taskId];
+    if (roh === undefined) continue;
+    const a = leseAntwort(roh);
+    if (a && bewerte(t, a).korrekt) richtig += 1;
+    else falsch.push(t);
+  }
+  const offen = aufgaben.filter((t) => antworten[t.taskId] === undefined);
+  return {
+    richtig,
+    falsch,
+    offen,
+    schwacheThemenIds: [...falsch, ...offen].flatMap((t) => t.proposal.topicIds),
+  };
 }

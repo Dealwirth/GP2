@@ -1,5 +1,156 @@
 # EGT-Prüfungstrainer (GP2) – Arbeitsnotizen
 
+## Zuletzt erledigt (30.09., achte Runde) – Auswertung der interaktiven Formate
+- **Fehler gefunden.** Die Prüfungsseite verglich die gewählte Antwort mit
+  `correctOptionId`. Die interaktiven Formate haben keine Optionskennung; jede
+  wahr/falsch-, Zuordnungs-, Reihenfolge- und Lückentext-Aufgabe galt damit als
+  falsch, egal was eingetragen war. Richtig beantwortete interaktive Aufgaben
+  wurden nicht gezählt.
+- **Bewertung an einer Stelle.** Neu in `domain/exam/simulation.ts`:
+  `bilanzieren()` (richtig / falsch / offen / Wiederholungsthemen) sowie
+  `leseAntwort()` und `schreibeAntwort()`. Die Bewertung liegt ausschließlich
+  bei `bewerte()`; die Seite hält keine eigene Kopie der Logik mehr. Eine
+  unlesbare gespeicherte Antwort zählt als falsch statt die Auswertung zu
+  sprengen.
+- **Wahr/Falsch ohne Prüfknopf.** Der Bestätigungsschritt war beim Umbau
+  versehentlich auch im Üben gelandet und hätte dort einen Klick mehr gekostet.
+  Der Übungsbetrieb ist wieder wie vorher; in der Prüfung melden alle Formate
+  sofort über `onVerlauf`, damit nichts verloren geht.
+- **Tests.** Neu `tests/pruefung.test.ts` (14): Speichern/Lesen der Antworten,
+  je Format eine richtige Antwort, teilweise richtige Zuordnung zählt nicht,
+  falsch vs. offen, unlesbare Antwort, Verteilung nach Bereich und Format.
+  Neu `tests/ui/pruefung-interaktiv.test.tsx` (4): sofortige Meldung,
+  Reihenfolge erst bei Bewegung, Übernahme einer gespeicherten Antwort,
+  gesperrte Eingabe nach der Abgabe.
+- **Stand:** `tsc` sauber, 22 Testdateien / 230 Tests grün, `npm run build` ok.
+  Manuell geprüft: Ein Durchgang mit einer wahr/falsch-Aufgabe zählt die
+  Antwort (2/12 statt 1/12).
+
+## Zuletzt erledigt (01.10., siebte Runde) – Abgleich zwischen Geräten
+- **Prüfung ohne Schlüssel-Scope.** Der Gist-Weg scheiterte an HTTP 403, weil
+  dem Token der `gist`-Scope fehlte. In der Oberfläche steht jetzt der direkte
+  Anlege-Link mit gesetztem Scope; ein falscher Token wird über „Token prüfen"
+  mit klarer Meldung abgewiesen (Name bei Erfolg, sonst der GitHub-Fehlertext).
+- **Abgleichs-UI in den Einstellungen fertig.** Abschnitt „Auf mehreren Geräten
+  üben": Token, „Token prüfen", „Jetzt abgleichen", Anzeige von Gist-Kennung und
+  letztem Abgleich, „Ablage trennen". Kein automatischer Abgleich und kein
+  gespeichertes Passwort – das Passwort wird für jeden Lauf neu abgefragt und
+  nirgends abgelegt.
+- **Datenschutz-Aussagen korrigiert.** „Der Lernstand verlässt das Gerät nicht"
+  stimmt mit dem Abgleich nicht mehr; beide Stellen sagen jetzt, dass er nur bei
+  ausdrücklich eingeschaltetem Abgleich verschlüsselt in den eigenen Gist geht.
+- **Tests (`tests/sync.test.ts`, 11).** Zusammenführen (je Thema der weiter
+  geübte Stand, Gleichstand bleibt lokal, Versuche/Sitzungen ohne Dubletten),
+  Einstellungen, und der volle Abgleich gegen einen Gist-Server im Speicher:
+  Anlegen, Verschlüsselung (kein Klartext im Gist), Zusammenführen mit einem
+  fremden Stand, falsches Passwort, zu kurzes Passwort, Übernahme in die Ablage.
+- **Stand:** `tsc` sauber, 23 Testdateien / 244 Tests grün, `npm run build` ok.
+  Hilfsskripte `scripts/_*.mts` entfernt – `tsc --noEmit` prüft `scripts/` mit,
+  sie hatten den Build blockiert.
+
+## Zuletzt erledigt (01.10., sechste Runde) – KI-Anbieter frei wählbar
+- **Ursache „KI antwortet nicht" gefunden.** Der eingebaute Schlüssel kommt
+  beim Bau aus dem Secret `VITE_GROQ_KEY`. Ist das Secret nicht gesetzt (oder
+  abgelaufen), ist `EINGEBAUTER_SCHLUESSEL` leer – und die App konnte gar
+  keinen Anbieter erreichen. Der Selbsttest sagte das auch („Kein
+  Groq-Schlüssel hinterlegt"), nur war Groq bis dahin der *einzige* Weg.
+- **Anbieterliste (`src/ai/anbieter.ts`, neu).** Sechs kostenlose,
+  OpenAI-kompatible Anbieter an einer Stelle: Groq, Google Gemini, Cerebras,
+  OpenRouter, GitHub Models, Mistral. Je Anbieter: Endpunkt, Schlüssel-Seite,
+  Modelle, Schema-Modus, Token-Feld, Gratis-Kontingent. Wechsel = andere
+  Adresse + Schlüssel + Modell; der restliche Code bleibt.
+- **Client passt sich an (`client.ts`).** `frage` baut die Anfrage je Anbieter:
+  `max_completion_tokens` vs. `max_tokens`, `reasoning_effort` nur wo erlaubt,
+  strenges `json_schema` (Groq, Cerebras) vs. weiches `json_object` mit Schema
+  im Text (Gemini, OpenRouter, Mistral, GitHub). Schlüssel werden je Anbieter
+  aus `VITE_<ANBIETER>_KEY` gelesen (`EINGEBAUTE_SCHLUESSEL`).
+  Neu: `listeModelle()` holt die aktuelle Modellliste beim Anbieter – die feste
+  Liste veraltet sonst (Google hat 2.0 Flash abgeschaltet).
+- **Einstellungen mit Anbieterauswahl (`einstellungen.ts`, `Einstellungen.tsx`).**
+  Neues Feld `kiAnbieter`; beim Wechsel wandern Endpunkt und Modellliste mit.
+  Knopf „Modelle vom Anbieter laden". Feldname `groqKey` bleibt (Bestandsdaten
+  und Exporte), trägt aber den Schlüssel des gewählten Anbieters.
+- **Fehlertexte anbieterneutral (`KiStatus.tsx`).** Statt „Groq ist nicht
+  erreichbar" jetzt „Der Anbieter ist …"; der nächste Schritt nennt
+  „Einstellungen" statt einer festen URL.
+- **Deploy (`deploy.yml`, `vite-env.d.ts`).** Weitere Secrets
+  `GEMINI_API_KEY`, `CEREBRAS_API_KEY`, `OPENROUTER_API_KEY`,
+  `GITHUB_MODELS_KEY`, `MISTRAL_API_KEY` durchgereicht; fehlt eines, ist der
+  Wert leer und die App meldet es sauber.
+- **Empfehlung (Kontingent):** Gemini 2.5 Flash-Lite (~1 000 Anfragen/Tag,
+  250 000 Token/Min) und Cerebras (1 Mio. Token/Tag, 30 Anfragen/Min) sind
+  Groq (8 000 Token/Min, ~60 Aufgaben/Tag) weit überlegen. Groq bleibt schnell,
+  ist aber das engste Kontingent.
+- Tests: 226 grün (neu: `tests/anbieter.test.ts`, `tests/ki-anbieter-anfrage.test.ts`),
+  `tsc` sauber, `npm run build` ok.
+- **Lehre:** `localhost`-Freigabe hier liefert für `models.github.ai` nur ein
+  Platzhalter-„OK" (content-type text/plain), keinen echten Modellaufruf –
+  Live-Tests gegen GitHub Models sind aus dieser Umgebung nicht aussagekräftig.
+
+## Zuletzt erledigt (30.09., fünfte Runde) – KI-Ausfall behoben
+- **Aufgaben-Vorrat ohne KI (`src/tasks/seed.ts`).** Ursache von „0 bereit":
+  Die KI war der einzige Weg zu Aufgaben, und bei leerem Groq-Kontingent stand
+  die App still. Neu: Der Vorrat wird zuerst aus Faktenbasis + Rechen-Engine
+  gebaut – ohne Netz, ohne Schlüssel, in Millisekunden. `seedAufgabenFuerAtom`
+  erzeugt je Thema Rechen-Varianten (Strombelastbarkeit, Abschaltbedingung,
+  Schleifenwiderstand, Strom ein-/dreiphasig) plus Kennwert-Fragen aus den
+  Fakten; jede läuft durch dieselbe Validierung wie KI-Aufgaben
+  (`validierungsOptionen: { duplikatPruefen: false }`). ~1 135 Aufgaben,
+  215/216 Themen. Tests: `tests/seed.test.ts`.
+- **Rotierender Seed-Vorrat (`vorrat.ts`).** Die Ablage ist ein Ringpuffer (60),
+  deshalb deckt jeder Durchgang ein Themenfenster (12) ab und rückt weiter;
+  der Stand liegt unter `seed-rotation` im localStorage. So geht der Stoff
+  nicht aus und dieselbe Aufgabe wiederholt sich nicht sofort. `App.tsx`
+  wärmt den Vorrat beim Start vor; `fuellung()` legt höchstens 2 KI-Aufgaben
+  nach (`KI_NACHLEGEN_MAX`) und meldet bei KI-Ausfall nur einen Hinweis.
+- **Sitzung fällt nie leer aus (`session.ts`).** Reicht der Vorrat nach KI und
+  Nachfordern nicht, baut `baueSession` die passenden Seed-Aufgaben direkt
+  (Schritt 3). Eine Wiederholung ist besser als eine leere Sitzung.
+- **KI-Vorschläge werden repariert statt verworfen (`generator.ts`,
+  `prompts.ts`).** `normalisiereRezept` füllt fehlende Pflichtfelder
+  (u0FactId, idnFactId, kennlinie, weg, cosPhi); erfundene Fakt-Kennungen
+  werden verworfen; `rendereVorlage` baut den Aufgabentext für Rechen-Themen
+  selbst aus Vorlage + Rezept und liefert die zugehörigen `factRefs` mit –
+  damit kann die Faktenbindung nicht mehr an einer erfundenen Zahl scheitern.
+  Scheitert ein Vorschlag trotzdem, liefert `baueEinenAufgabe` die
+  Engine-Aufgabe zum selben Thema (Lücke statt Ausfall).
+- **Faktenbindung: Bezeichnung zählt mit (`validation/pipeline.ts`).** Zahlen
+  in `fakt.bezeichnung` (z. B. „Prüfspannung 500 V DC") sind belegt wie die
+  in `fakt.bemerkung`.
+- **Messung (live, Groq):** Vorher 0 Aufgaben in ~59 s/Thema (429). Jetzt
+  6/8 Aufgaben in 29 s mit `openai/gpt-oss-20b`. gpt-oss-20b liefert mit dem
+  kompakten Schema jetzt zuverlässig und ist schneller als `qwen/qwen3.8-27b`
+  (4/8, 92 s) → Standard bleibt gpt-oss-20b.
+- Tests: 214 grün, `tsc` sauber.
+
+## Zuletzt erledigt (30.09., vierte Runde)
+- **Lern-Takt: Stoff bis zur Prüfung.** `waehleThemen` deckelte frische Themen
+  nicht – die Auswahl nahm reifste Themen zuerst und zog den Stoff in wenigen
+  Sitzungen durch. Jetzt reine, testbare Funktion `waehleThemenAus` in
+  `session.ts`: Wiederholung zuerst, **ein reservierter Platz für ein neues
+  Thema**, und der Takt für weitere neue Themen kommt aus „offene Themen /
+  Resttage" (bei ferner Prüfung ~1, bei naher mehr). `bekannteThemen()` in
+  `ablage.ts` liefert, welche Themen schon eine Aufgabe haben. Tests:
+  `tests/pacing.test.ts`.
+- **Freier KI-Anbieter erreichbar gemacht.** `client.ts` rief immer
+  `einstellungen.proxyUrl` auf, die Seite setzte ihn aber fest auf Groq – ein
+  anderes Gratis-Kontingent war damit nicht nutzbar. Neues Feld
+  `kiEndpunkt` in `src/ui/einstellungen.ts` (leer = Groq) mit Eingabefeld in
+  den Einstellungen; `aiEinstellungenAus` reicht es als `proxyUrl` durch.
+  Test: `tests/ki-endpunkt.test.ts`.
+- **Umlaut-Korruption in `resolve.ts` repariert.** Die Datei war durch einen
+  früheren Editor-Schreibvorgang doppelt kodiert (`RezeptauflûÑsung` statt
+  `Rezeptauflösung`). Folge: die Zeichenklassen in `zerlegeOption`/`einheitPasst`
+  passten nicht mehr, und fünf `Optionsabgleich`-Tests fielen um. Datei aus
+  HEAD wiederhergestellt und die eigenen Änderungen byte-sicher neu
+  eingespielt. **Lehre: `src/`-Dateien mit Umlauten/Ω nur über Python
+  (`pathlib.write_text(..., encoding='utf-8')`) bearbeiten, nie über einen
+  Editor, der die Kodierung nicht hält.**
+- **KI-Tempo (Fortsetzung).** Standardmodell bleibt `openai/gpt-oss-20b`
+  (live ~2 s/Anfrage). Veraltete Texte angeglichen: Einstellungen (Modell- und
+  Vorrat-Beschreibung: Standard 4, nicht 10), `Heute.tsx` („ohne
+  Wiederholungen" stimmte nicht mehr), `KiStatus.tsx`-Modellhinweise.
+
 ## Zuletzt erledigt (30.09., dritte Runde)
 - **KI-Erzeugung wirklich repariert – Ursache war das Modell.** Der echte
   Grund, warum keine Aufgaben entstanden: Groq wurde mit `openai/gpt-oss-120b`
@@ -187,3 +338,68 @@ rendern – die Blaetter sind erst der Anfang.
 `tests/ui/blaetter.test.tsx` löst einen echten Renderwurf aus und prüft, dass
 statt einer leeren Seite die verständliche Ansicht erscheint.
 
+
+## Umgesetzt 01.10. (zweite Analyse-Runde)
+
+Die offenen Punkte oben sind bis auf den Termin-Takt abgearbeitet:
+
+1. **Kaltstart** – `fuelleVorratMitSeed` läuft jetzt in `requestIdleCallback`
+   (Fallback `setTimeout`); der erste Anstrich wartet nicht mehr darauf.
+2. **Doppelarbeit** – die Runden-Schleife in `fuellung()` bricht ab, sobald
+   `holeVorrat().length >= ziel`; kein Überbauen mehr.
+3. **Wartezeit** – die KI-Nachfüllung holt beide Aufgaben nebenläufig
+   (`Promise.allSettled`) statt nacheinander. Zwei Aufgaben kosten jetzt eine
+   Netz-Runde statt zweier.
+4. **Vorratsgrenzen** – `VORRAT_MINIMUM = 4`, `VORRAT_MAXIMUM = 60` passend zu
+   `ablage.MAX = 60`, `KI_NACHLEGEN_MAX = 2`.
+
+### Der Vorratsfehler und seine Ursache
+`bereit` fiel über Zyklen zusammen (39 → … → 15 → 4 → 13), obwohl die Ablage
+voll war. Grund: Die Füllung maß den Stand an der **Ablage**, nicht an den
+wirklich **bereitliegenden** Aufgaben. Die Ablage ist ein Ringpuffer und zählte
+alte, längst gestellte Aufgaben mit. Fix: alles misst `holeVorrat().length`.
+Repro und Regressionsschutz in `tests/vorrat.test.ts` (20 Zyklen, stabil).
+
+### Aufgabenbestand (das eigentliche Wachstum)
+- Wissensfragen aus der Faktenbasis: `src/tasks/fragen.ts` (Wert- und
+  Aussagefragen, Distraktoren aus Nachbarwerten).
+- Verfahrensfragen: `src/tasks/wissen-prozess.ts` – kuratierte Sammlung für
+  Funktionsanalyse, Fehlersuche, Messverfahren, Systementwurf. Diese Themen
+  fragen kein Rechnen, sondern das Vorgehen; aus Fakten ist das nicht
+  erzeugbar. Rund 90 Fragen.
+- Smart-Distraktoren: `src/tasks/distraktoren.ts` erzeugt je Rezeptart die
+  **echten** Denkfehler (√3 vergessen, cos φ vergessen, Faktor 1,45 falsch).
+- Bestand: 332 → **1 798** verschiedene Aufgaben (über Frageform-Runden).
+  Verteilung: Kundenauftrag 834, Systementwurf 320, WiSo 279, Teil 1 263,
+  Funktionsanalyse 102.
+
+### Zwei Fehler in der Aufgabenqualität, gefixt
+- **Null-Antworten.** Distraktoren wie „richtig / 1000" wurden als „0,00"
+  angezeigt (z. B. 2 kWh). `distraktorenFuer` verwirft jetzt alles, was als
+  null erscheint, und alles außerhalb des Zwanzigfachen – sonst greift die
+  Ersatzregel (doppelter/halber Wert).
+- **Doppelte Fragetexte.** „Welchen Wert nennt die Norm für U₀?" entstand
+  unter jedem Normthema neu. `seedAufgabenFuerAtome` und die Füllschleife
+  führen jetzt ein Textgedächtnis über die Themen hinweg.
+
+### Quellen
+- `dguv4` war falsch betitelt („Arbeitsmedizinische Vorsorge" – das ist
+  Vorschrift 7). Korrigiert auf „Elektrische Anlagen und Betriebsmittel".
+- `schultabelle` bleibt bewusst **ungeprüft**: Es ist eine Berufsschul-/
+  ZVEH-Konvention, kein Normwert; die Fakten sind mit `verification: 'offen'`
+  gekennzeichnet. 46 von 47 Quellen sind am Original geprüft.
+
+### Wissensbasis
+224 Fakten, 47 Quellen. `formel` an `FaktOptionen`; neue Faktmodule
+`hilfe.ts`, `tabellen.ts`, `wissen-technik.ts`, `wissen-gebaeude.ts`,
+`wissen-wiso.ts`; Engine um Drehstromstrom, Spannungsfall mit cos φ,
+Temperatur/Häufung, Scheinleistung, Isolations-/Widerstandswerte, Energie und
+Kosten erweitert.
+
+### Testlage
+249 Tests in 24 Dateien, alle grün. Neu: `tests/vorrat.test.ts` (Stabilität),
+`tests/seed.test.ts` um drei Qualitätszusicherungen erweitert.
+
+### Offen
+- Termin-Takt gegen die tatsächliche Sitzungszahl kalibrieren (Punkt 5 oben).
+- Nutzeranforderung „Aufgab…" ist im Log abgeschnitten – Wortlaut erfragen.

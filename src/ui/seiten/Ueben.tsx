@@ -8,7 +8,8 @@ import {
   stelleSitzungWieder,
 } from '../../tasks/session.ts';
 import { useGespeichert } from '../persistenz.ts';
-import { KiWerkstatt } from './KiWerkstatt.tsx';
+import { InteraktiveAntwort } from '../InteraktiveAntwort.tsx';
+import { bewerte, antwortAlsText, type Antwort, type Urteil } from '../../domain/interaktiv.ts';
 import { InhaltsverzeichnisBlatt } from '../InhaltsverzeichnisBlatt.tsx';
 import { TabellenBlatt } from '../TabellenBlatt.tsx';
 import { storage } from '../../storage/index.ts';
@@ -32,7 +33,9 @@ import type { SeitenName } from '../router.ts';
 interface Rundenstand {
   sessionId: string | null;
   index: number;
-  antwort: string | null;
+  antwort: Antwort | null;
+  /** Ergebnis der Bewertung – erst nach dem Abgeben gesetzt. */
+  urteil: Urteil | null;
   sicherheit: 'sicher' | 'geraten' | 'unsicher' | null;
   antworten: { taskId: string; korrekt: boolean }[];
   beginn: number;
@@ -42,7 +45,7 @@ interface Rundenstand {
 const RUNDE_SCHLUESSEL = 'runde-stand';
 
 function startRundenstand(sessionId: string | null = null): Rundenstand {
-  return { sessionId, index: 0, antwort: null, sicherheit: null, antworten: [], beginn: Date.now(), ergebnis: null };
+  return { sessionId, index: 0, antwort: null, urteil: null, sicherheit: null, antworten: [], beginn: Date.now(), ergebnis: null };
 }
 
 export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; pruefung?: boolean }) {
@@ -65,7 +68,7 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
     }
   }, [laufend, stand.sessionId, setStand]);
 
-  const { index, antwort, sicherheit, beginn, ergebnis } = stand;
+  const { index, antwort, urteil, sicherheit, beginn, ergebnis } = stand;
   const setSicherheit = (s: 'sicher' | 'geraten' | 'unsicher' | null): void =>
     setStand((alt) => ({ ...alt, sicherheit: s }));
   const [restzeit, setRestzeit] = useState<number | null>(null);
@@ -84,7 +87,7 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
   const aufgaben: Task[] = laufend?.aufgaben ?? [];
   const aktuelle = aufgaben[index] ?? null;
   const pruefung = props.pruefung ?? false;
-  const richtig = antwort !== null && aktuelle ? antwort === aktuelle.correctOptionId : false;
+  const richtig = urteil?.korrekt ?? false;
 
   // Countdown: die Pause endet, auch wenn nicht weitergearbeitet wird.
   useEffect(() => {
@@ -101,20 +104,21 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
     return () => clearInterval(id);
   }, [laufend]);
 
-  const waehleAntwort = useCallback(
-    async (optionId: string) => {
+  const gibAntwort = useCallback(
+    async (a: Antwort) => {
       if (!aktuelle || antwort !== null) return;
-      const korrekt = optionId === aktuelle.correctOptionId;
+      const ergebnisUrteil = bewerte(aktuelle, a);
       // Funktionale Aktualisierung: sonst gehen Antwort und Sicherheitsangabe
       // verloren, wenn beide in derselben Runde gesetzt werden.
       setStand((alt) => ({
         ...alt,
-        antwort: optionId,
-        antworten: [...alt.antworten, { taskId: aktuelle.taskId, korrekt }],
+        antwort: a,
+        urteil: ergebnisUrteil,
+        antworten: [...alt.antworten, { taskId: aktuelle.taskId, korrekt: ergebnisUrteil.korrekt }],
       }));
       await verbucheAntwort({
         task: aktuelle,
-        korrekt,
+        korrekt: ergebnisUrteil.korrekt,
         sicherheit,
         zeitMs: Date.now() - beginn,
         sessionId: laufend?.sitzung.sessionId ?? null,
@@ -130,6 +134,7 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
         ...alt,
         index: alt.index + 1,
         antwort: null,
+        urteil: null,
         sicherheit: null,
         beginn: Date.now(),
       }));
@@ -175,13 +180,12 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
       <div>
         <h2>Üben</h2>
         <p className="klein">
-          Auf der Startseite wählst du ein Zeitbudget – die App stellt die Aufgaben
-          zusammen. Oder du lässt dir hier gezielt Aufgaben zu einem Thema erzeugen.
+          Auf der Startseite wählst du ein Zeitbudget – die App stellt die
+          Aufgaben aus dem eingebauten Bestand zusammen.
         </p>
         <button className="haupt" onClick={() => props.wechsle('heute')}>
           Zeitbudget wählen
         </button>
-        <KiWerkstatt store={props.store} wechsle={props.wechsle} />
       </div>
     );
   }
@@ -258,10 +262,17 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
                 Kundenauftrag behandelt, nicht hier in der Pause.
               </p>
             </div>
+          ) : aktuelle.interaktiv ? (
+            <InteraktiveAntwort
+              task={aktuelle}
+              gesperrt={antwort !== null}
+              onAntwort={(a) => void gibAntwort(a)}
+              urteil={urteil}
+            />
           ) : (
             <div className="raster">
               {(aktuelle.proposal.options ?? []).map((o) => {
-                const istAntwort = antwort === o.id;
+                const istAntwort = antwort?.art === 'mc' && antwort.optionId === o.id;
                 const istRichtig = o.id === aktuelle.correctOptionId;
                 let klasse = 'option';
                 if (!pruefung && antwort !== null && istRichtig) klasse += ' richtig';
@@ -272,7 +283,7 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
                     key={o.id}
                     className={klasse}
                     onClick={() => {
-                      void waehleAntwort(o.id);
+                      void gibAntwort({ art: 'mc', optionId: o.id });
                     }}
                     disabled={antwort !== null}
                   >
@@ -305,6 +316,16 @@ export function Ueben(props: { store: Store; wechsle: (s: SeitenName) => void; p
                 <strong>{richtig ? 'Richtig.' : 'Nicht ganz.'}</strong>{' '}
                 {aktuelle.explanation}
               </p>
+              {!richtig && urteil && urteil.hinweise.length > 0 && (
+                <ul className="hinweise">
+                  {urteil.hinweise.map((h, i) => (
+                    <li key={i}>{h}</li>
+                  ))}
+                </ul>
+              )}
+              {aktuelle.interaktiv && (
+                <p className="klein">Deine Antwort: {antwortAlsText(aktuelle, antwort!)}</p>
+              )}
               {aktuelle.solutionSteps.length > 0 && (
                 <>
                   <h3>Lösungsweg</h3>

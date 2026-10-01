@@ -8,7 +8,7 @@ const UNBEGRENZT = null;
  * Formeln des Prüfungsrechnens.
  *
  * Gespeichert werden nur die Formeln als Text. Gerechnet wird ausschließlich
- * in `src/engine/calc` – niemals von der KI und niemals in einer Aufgabe.
+ * in `src/engine/calc` – niemals in einer Aufgabe.
  * Jede Rechenaufgabe zeigt die Formel, die eingesetzten Tabellenwerte und das
  * Ergebnis, damit der Weg nachprüfbar bleibt.
  */

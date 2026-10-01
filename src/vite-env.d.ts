@@ -2,17 +2,8 @@
 
 declare global {
   interface ImportMetaEnv {
-    /** Groq-Schlüssel, beim Bau aus dem Repository-Secret eingesetzt. */
-    readonly VITE_GROQ_KEY?: string;
+    readonly BASE_URL: string;
   }
 }
 
 export {};
-
-interface ImportMetaEnv {
-  readonly BASE_URL: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}

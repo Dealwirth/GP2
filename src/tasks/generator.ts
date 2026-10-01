@@ -4,6 +4,7 @@ import { abschaltbedingung, strombelastbarkeit } from '../engine/calc/index.ts';
 import { baueTask, parameterHash } from '../validation/pipeline.ts';
 import type { Aufgabenstufe, ExamArea } from '../domain/types.ts';
 import { wisoAufgaben } from './wiso.ts';
+import { interaktiveAufgaben } from './interaktiv.ts';
 import { fachAufgaben } from './fachaufgaben.ts';
 import { fallAufgaben } from './fallaufgaben.ts';
 import { ueberspringeFehlerhaft } from './robust.ts';
@@ -11,11 +12,11 @@ import { ueberspringeFehlerhaft } from './robust.ts';
 /**
  * Statische Aufgabenerzeugung aus der Faktenbasis.
  *
- * Diese Aufgaben entstehen ohne KI. Sie sind der Beweis dafür, dass die Plattform
- * auch dann funktioniert, wenn kein Netz oder kein API-Schlüssel verfügbar ist –
- * und sie liefern die Referenzmenge, gegen die KI-Aufgaben geprüft werden.
+ * Diese Aufgaben entstehen vollständig auf dem Gerät. Sie sind der Beweis
+ * dafür, dass die Plattform ohne Netz und ohne Schlüssel funktioniert – und
+ * sie liefern die Referenzmenge für den gesamten Bestand.
  *
- * Jede Aufgabe durchläuft dieselbe Validierungspipeline wie eine KI-Aufgabe.
+ * Jede Aufgabe durchläuft dieselbe Validierungspipeline.
  */
 
 function zahl(wert: number, stellen = 2): string {
@@ -258,7 +259,7 @@ export function aufgabeFaktwert(params: {
 }
 
 /**
- * Liefert den statischen Aufgabenvorrat, mit dem die App ohne KI startet.
+ * Liefert den festen Aufgabenvorrat, mit dem die App startet.
  *
  * Vier Quellen, weil vier Arten von Wissen unterschiedlich abgesichert sind:
  *   - Rechen- und Kennwerte aus der Faktenbasis (`technischeGrundaufgaben`)
@@ -275,6 +276,7 @@ export function statischeGrundaufgaben(): Task[] {
     { name: 'fach', liefere: fachAufgaben },
     { name: 'fall', liefere: fallAufgaben },
     { name: 'wiso', liefere: wisoAufgaben },
+    { name: 'interaktiv', liefere: interaktiveAufgaben },
   ];
   for (const quelle of quellen) {
     const teil = ueberspringeFehlerhaft(quelle.name, 'sammlung', quelle.liefere);

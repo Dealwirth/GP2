@@ -51,7 +51,6 @@ export function Lernen(props: { store: Store; wechsle: (s: SeitenName) => void }
     if (passend.length === 0) {
       setMeldung(
         `Für „${titel}" gibt es noch keine fertigen Aufgaben. ` +
-          'Diese Themen werden von der KI erzeugt – ohne API-Schlüssel bleibt der Vorrat leer. ' +
           'Wähle auf der Startseite eine normale Session, sie mischt alle Bereiche.',
       );
       return;

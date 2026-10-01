@@ -3,13 +3,15 @@ import type { Dispatch, SetStateAction } from 'react';
 import { PRUEFUNGEN, wertePruefung, type PruefungDefinition } from '../../domain/exam/simulation.ts';
 import { PRUEFUNGSBEREICHE, noteZuUrteil } from '../../content/syllabus/exam.ts';
 import { statischeGrundaufgaben } from '../../tasks/generator.ts';
-import { verteileAufgaben } from '../../domain/exam/simulation.ts';
 import { startSitzung, beendeSitzung } from '../../tasks/session.ts';
+import type { Antwort } from '../../domain/interaktiv.ts';
+import { bilanzieren, leseAntwort, schreibeAntwort, verteileAufgaben } from '../../domain/exam/simulation.ts';
 import type { Task } from '../../domain/types.ts';
 import type { Store } from '../store.ts';
 import type { SeitenName } from '../router.ts';
 import { useGespeichert } from '../persistenz.ts';
 import { InhaltsverzeichnisBlatt } from '../InhaltsverzeichnisBlatt.tsx';
+import { InteraktiveAntwort } from '../InteraktiveAntwort.tsx';
 import { TabellenBlatt } from '../TabellenBlatt.tsx';
 
 /** Schlüssel des laufenden Durchgangs im dauerhaften Speicher. */
@@ -42,7 +44,7 @@ function restsekunden(pruefung: PruefungDefinition, beginn: number): number {
  *                  Multiple Choice verkleidet.
  *
  * Zwei Regeln gelten in jeder Simulation:
- *  1. Die KI ist aus – keine Hinweise, keine Generierung.
+ *  1. Keine Hinweise und keine Lösungshilfen während des Durchgangs.
  *  2. Vor dem Abgeben gibt es keine Rückmeldung, sonst misst man Lernhilfe
  *     statt Prüfungsfähigkeit.
  */
@@ -50,10 +52,18 @@ function restsekunden(pruefung: PruefungDefinition, beginn: number): number {
 export interface PruefungsLauf {
   pruefungId: string;
   index: number;
-  wahl: Record<string, string>;
   /** Startzeitpunkt in Millisekunden – daraus wird die Restzeit gerechnet. */
   beginn: number;
   abgegeben: boolean;
+  /**
+   * Die Antwort je Aufgabe.
+   *
+   * Nicht mehr nur die gewählte Optionskennung: Die interaktiven Formate
+   * antworten als Zuordnung, Reihenfolge oder Lückentext. Der Wert ist eine
+   * Zeichenkette, damit der gespeicherte Durchgang ein Neuladen übersteht –
+   * die Antwort selbst liegt als JSON darin.
+   */
+  antworten: Record<string, string>;
 }
 
 export function Pruefung(props: { store: Store; wechsle: (s: SeitenName) => void }) {
@@ -80,9 +90,9 @@ export function Pruefung(props: { store: Store; wechsle: (s: SeitenName) => void
       setLauf({
         pruefungId: pruefung.id,
         index: 0,
-        wahl: {},
         beginn: Date.now(),
         abgegeben: false,
+        antworten: {},
       });
       scrollTo({ top: 0 });
     },
@@ -212,9 +222,9 @@ function PruefungLaufend(props: {
     return verteileAufgaben(pruefung.bereich, verfuegbar, pruefung.aufgabenAnzahl);
   }, [pruefung]);
 
-  const { index, wahl, abgegeben } = lauf;
+  const { index, antworten, abgegeben } = lauf;
   const aktuelle = aufgaben[index] ?? null;
-  const beantwortet = Object.keys(wahl).length;
+  const beantwortet = Object.keys(antworten).length;
 
   /**
    * Restzeit aus dem gespeicherten Startzeitpunkt – nicht aus einem Zähler.
@@ -238,9 +248,15 @@ function PruefungLaufend(props: {
       setLauf((alt) => (alt ? { ...alt, index: f(alt.index) } : alt)),
     [setLauf],
   );
-  const setWahl = useCallback(
-    (f: (w: Record<string, string>) => Record<string, string>) =>
-      setLauf((alt) => (alt ? { ...alt, wahl: f(alt.wahl) } : alt)),
+  const setAntwort = useCallback(
+    (taskId: string, a: Antwort | null) =>
+      setLauf((alt) => {
+        if (!alt) return alt;
+        const neu = { ...alt.antworten };
+        if (a) neu[taskId] = schreibeAntwort(a);
+        else delete neu[taskId];
+        return { ...alt, antworten: neu };
+      }),
     [setLauf],
   );
   const abgeben = useCallback(
@@ -275,12 +291,11 @@ function PruefungLaufend(props: {
   }
 
   if (abgegeben) {
-    const richtig = aufgaben.filter((t) => wahl[t.taskId] === t.correctOptionId).length;
-    const falschBeantwortet = aufgaben.filter(
-      (t) => wahl[t.taskId] !== undefined && wahl[t.taskId] !== t.correctOptionId,
-    );
-    const offen = aufgaben.filter((t) => wahl[t.taskId] === undefined);
-    const falscheThemen = [...falschBeantwortet, ...offen].flatMap((t) => t.proposal.topicIds);
+    // Richtig ist eine Aufgabe nur, wenn `bewerte` sie vollständig so sieht.
+    // Interaktive Formate liefern Teilpunkte – für die Note zählt wie in der
+    // echten Prüfung allein die volle Antwort.
+    const bilanz = bilanzieren(aufgaben, antworten);
+    const { richtig, falsch: falschBeantwortet, offen, schwacheThemenIds: falscheThemen } = bilanz;
     // Die tatsächlich verbrauchte Prüfungszeit – nie mehr als das Zeitbudget,
     // sonst würde eine liegen gelassene Seite die Zeitbilanz verfälschen.
     const dauer = Math.min(
@@ -386,18 +401,32 @@ function PruefungLaufend(props: {
       {aktuelle && (
         <>
           <p className="frage">{aktuelle.proposal.prompt}</p>
-          <div>
-            {(aktuelle.proposal.options ?? []).map((o) => (
-              <button
-                key={o.id}
-                className={`option ${wahl[aktuelle.taskId] === o.id ? 'gewaehlt' : ''}`}
-                disabled={wahl[aktuelle.taskId] !== undefined}
-                onClick={() => setWahl((alt) => ({ ...alt, [aktuelle.taskId]: o.id }))}
-              >
-                {o.text}
-              </button>
-            ))}
-          </div>
+          {aktuelle.interaktiv ? (
+            <InteraktiveAntwort
+              key={aktuelle.taskId}
+              task={aktuelle}
+              gesperrt={false}
+              initial={leseAntwort(antworten[aktuelle.taskId])}
+              onVerlauf={(a) => setAntwort(aktuelle.taskId, a)}
+            />
+          ) : (
+            <div>
+              {(aktuelle.proposal.options ?? []).map((o) => {
+                const gewaehlt = leseAntwort(antworten[aktuelle.taskId]);
+                const istGewaehlt = gewaehlt?.art === 'mc' && gewaehlt.optionId === o.id;
+                return (
+                  <button
+                    key={o.id}
+                    className={`option ${istGewaehlt ? 'gewaehlt' : ''}`}
+                    disabled={antworten[aktuelle.taskId] !== undefined}
+                    onClick={() => setAntwort(aktuelle.taskId, { art: 'mc', optionId: o.id })}
+                  >
+                    {o.text}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
 

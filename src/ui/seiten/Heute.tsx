@@ -3,11 +3,7 @@ import type { Store } from '../store.ts';
 import type { SeitenName } from '../router.ts';
 import { BUDGETS, type Zeitbudget } from '../../tasks/session.ts';
 import { baueSession, startSitzung } from '../../tasks/session.ts';
-import { erzeugeAufgaben } from '../../ai/generator.ts';
-import { aiEinstellungenAus } from '../einstellungen.ts';
-import { merkeAufgaben } from '../../tasks/ablage.ts';
 import { fuelleVorratAuf } from '../../tasks/vorrat.ts';
-import { deuteFehler } from '../KiStatus.tsx';
 import type { Task } from '../../domain/types.ts';
 import { PRUEFUNGSBEREICHE, TEIL2_BEREICHE } from '../../content/syllabus/exam.ts';
 import {
@@ -21,7 +17,7 @@ import {
   ZUSTAENDIGE_STELLE,
 } from '../../domain/termine.ts';
 import { reifegrad } from '../../domain/stateMachine.ts';
-import { reife, holeAtom } from '../../content/curriculum/index.ts';
+import { reife } from '../../content/curriculum/index.ts';
 
 /**
  * Startseite.
@@ -40,29 +36,20 @@ export function Heute(props: { store: Store; wechsle: (s: SeitenName) => void })
       setWirdGebaut(true);
       setHinweis(null);
       try {
-        const ai = aiEinstellungenAus(store.einstellungen);
-        const tasks = await baueSession(budget, (topicId, anzahl) => {
-          const atom = holeAtom(topicId);
-          if (!atom) return Promise.resolve([]);
-          return erzeugeAufgaben(ai, atom, anzahl).then((ergebnis) => {
-            merkeAufgaben(ergebnis.aufgaben);
-            return ergebnis.aufgaben;
-          });
-        });
+        const tasks = await baueSession(budget);
         if (tasks.length === 0) {
           setHinweis(
-            'Die KI konnte keine prüfbare Aufgabe liefern. Einen Moment warten und erneut versuchen – oder die Verbindung über den KI-Knopf oben prüfen.',
+            'Es ließen sich gerade keine Aufgaben zusammenstellen. Einen Moment warten und erneut versuchen.',
           );
           return;
         }
         startSitzung(tasks, budget, 'pause');
         // Im Hintergrund sofort wieder auffüllen, damit die nächste Runde
         // ohne Wartezeit startet.
-        void fuelleVorratAuf(ai);
+        void fuelleVorratAuf();
         location.hash = '#/ueben';
       } catch (fehler) {
-        const { grund } = deuteFehler(fehler);
-        setHinweis(grund);
+        setHinweis(fehler instanceof Error ? fehler.message : 'Unbekannter Fehler.');
       } finally {
         setWirdGebaut(false);
       }
@@ -103,9 +90,10 @@ export function Heute(props: { store: Store; wechsle: (s: SeitenName) => void })
         </div>
         {hinweis && <p className="klein frist dringend">{hinweis}</p>}
         <p className="klein">
-          Jede Aufgabe stellt die KI frisch – gemischt über alle
-          Prüfungsbereiche, ohne Wiederholungen. Die Rechnung dahinter läuft
-          auf deinem Gerät.
+          Jede Aufgabe wird auf deinem Gerät aus dem eingebauten Bestand
+          zusammengestellt. Wiederholung und neue Themen wechseln sich ab,
+          damit der Stoff bis zur Prüfung reicht. Es wird nichts an einen
+          Server übertragen.
         </p>
       </section>
 

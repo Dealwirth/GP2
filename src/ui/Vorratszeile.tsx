@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { beobachteVorrat, fuelleVorratAuf, type Vorratsstand } from '../tasks/vorrat.ts';
-import { aiEinstellungenAus } from './einstellungen.ts';
 import type { Store } from './store.ts';
 
 /**
@@ -27,8 +26,7 @@ export function Vorratszeile(props: { store: Store }) {
   // Beim Öffnen der App einmal nachfüllen – unaufdringlich, im Hintergrund.
   useEffect(() => {
     if (!store.geladen) return;
-    const ai = aiEinstellungenAus(store.einstellungen);
-    void fuelleVorratAuf(ai, store.einstellungen.vorrat);
+    void fuelleVorratAuf(store.einstellungen.vorrat);
   }, [store.geladen, store.einstellungen]);
 
   const ziel = store.einstellungen.vorrat;
@@ -48,7 +46,7 @@ export function Vorratszeile(props: { store: Store }) {
           ? `Vorrat: ${stand.fehler}`
           : `${stand.bereit} fertige Aufgaben bereit (${stand.gesamt} insgesamt gespeichert, Ziel ${ziel})`
       }
-      onClick={() => void fuelleVorratAuf(aiEinstellungenAus(store.einstellungen), ziel)}
+      onClick={() => void fuelleVorratAuf(ziel)}
     >
       <span className="vorratPunkt" />
       <span className="vorratText">

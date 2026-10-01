@@ -198,7 +198,7 @@ describe('baueTask', () => {
 });
 
 describe('Statische Grundaufgaben', () => {
-  it('erzeugt Aufgaben ganz ohne KI', () => {
+  it('erzeugt Aufgaben vollständig auf dem Gerät', () => {
     leereDuplikatspeicher();
     const aufgaben = statischeGrundaufgaben();
     expect(aufgaben.length).toBeGreaterThan(4);
@@ -207,9 +207,11 @@ describe('Statische Grundaufgaben', () => {
       expect(a.validation.checks.every((c) => c.passed)).toBe(true);
       expect(a.approved).toBe(true);
       expect(a.solutionSteps.length).toBeGreaterThan(0);
-      // Multiple Choice braucht einen Schlüssel, offene Formate brauchen
-      // stattdessen Pflichtbegriffe. Beides muss belegt sein – aber nie beides.
-      if (a.proposal.options && a.proposal.options.length > 0) {
+      // Multiple Choice braucht einen Schlüssel, interaktive Formate ihre
+      // Lösung, offene Formate Pflichtbegriffe. Genau eines davon muss belegt sein.
+      if (a.interaktiv) {
+        expect(a.interaktiv.format).toBe(a.proposal.format);
+      } else if (a.proposal.options && a.proposal.options.length > 0) {
         expect(a.correctOptionId).toBeDefined();
       } else {
         expect(a.proposal.expectedKeywords?.length ?? 0).toBeGreaterThan(0);
@@ -252,7 +254,7 @@ describe('Statische Grundaufgaben', () => {
     expect(zweimal.map((t) => t.taskId)).toEqual(einmal.map((t) => t.taskId));
   });
 
-  it('hält KI-Aufgaben weiterhin gegen Duplikate ab', () => {
+  it('hält erzeugte Aufgaben weiterhin gegen Duplikate ab', () => {
     leereDuplikatspeicher();
     const vorschlag = guterVorschlag;
     const hash = parameterHash(['ki-test']);

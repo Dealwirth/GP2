@@ -7,13 +7,17 @@ Statische Web-App. **0 € · keine Kreditkarte · Lerndaten bleiben im Browser.
 
 ## Die eine Regel, auf der alles aufbaut
 
-**Die KI darf nichts wissen, nur vorschlagen.**
+**Keine Zahl ohne Beleg.**
 
 `TaskProposal` hat bewusst *kein* Feld für einen Lösungswert. Wer eine korrekte
 Antwort erzeugen will, muss durch die Rechen-Engine und die Validierungspipeline.
 Der einzige Weg zu einer Aufgabe führt über `baueTask()` – und das wirft, sobald
 eine Prüfung fehlschlägt. Die Trennung ist im Typensystem erzwungen, nicht in
 einer Konvention.
+
+Die App ist vollständig statisch: keine KI, kein Modellaufruf, kein
+API-Schlüssel. Alle Aufgaben entstehen aus der Faktenbasis, der Rechen-Engine
+und dem kuratierten Fragenbestand – auf dem Gerät, ohne Netz.
 
 Jede gespeicherte Antwort trägt `factVersion`, `ruleVersion` und `engineVersion`.
 Du kannst damit noch in einem Jahr nachvollziehen, warum etwas so bewertet wurde.
@@ -38,13 +42,13 @@ Abstürzen aber auch.
 |---|---|
 | **Faktenbasis v1.0** | Werte mit Quelle, Gültigkeitszeitraum, Region und Prüfstatus. Jeder Fakt verweist auf ein Quellenverzeichnis mit Kennung und Bezugsweg; offene Werte werden als offen gekennzeichnet, statt als gesichert aufzutauchen. |
 | **Rechen-Engine** | Deterministisch. Strombelastbarkeit, Absicherung, Abschaltbedingung, Schleifenwiderstand, Spannungsfall. Jedes Ergebnis nennt die verwendete Regel und liefert Lösungsschritte. |
-| **Lernpfad** | 211 Themen in 32 Kapiteln, gegliedert nach den Berufsbildpositionen der Fachrichtung EGT (§ 4 ElekAusbV). |
-| **Aufgabenvorrat** | 81 geprüfte Aufgaben in allen drei Antwortformaten der Prüfung: `mc`, `fall` und `strukturiert`/`offen`. Rechen- und Kennwerte aus der Faktenbasis, plus kuratierte Fallaufgaben, Fachfragen und WiSo-Fragen für alle vier Bereiche von Teil 2. |
-| **KI-Erzeugung** | Groq, direkt und ohne Zwischenstation. Jede Aufgabe wird frisch erzeugt und muss dieselbe Prüfung nehmen: Rezept durch die Rechen-Engine, Faktenbindung, Duplikatsperre, Zweitprüfung. Der Aufgabenstrom mischt alle Prüfungsbereiche und wiederholt sich nicht. |
+| **Lernpfad** | 216 Themen in 33 Kapiteln, gegliedert nach den Berufsbildpositionen der Fachrichtung EGT (§ 4 ElekAusbV). |
+| **Aufgabenvorrat** | 224 geprüfte Aufgaben in allen Antwortformaten der Prüfung: `mc`, `fall`, `strukturiert`/`offen` sowie die interaktiven Formate `wahr-falsch`, `zuordnung`, `reihenfolge`, `luecke` und `zahl`. Rechen- und Kennwerte aus der Faktenbasis, plus kuratierte Fallaufgaben, Fachfragen, Verfahrensfragen, interaktive Aufgaben und WiSo-Fragen für alle vier Bereiche von Teil 2. Aus den Themen entstehen darüber hinaus mehrere tausend Aufgaben (Faktenwert-, Wissens- und Verfahrensfragen). |
+| **Validierungspipeline** | Jede Aufgabe – ob gerechnet oder kuratiert – nimmt dieselbe Prüfung: Rezept durch die Rechen-Engine, Faktenbindung, Duplikatsperre, Gültigkeitsprüfung. Der Aufgabenstrom mischt alle Prüfungsbereiche und wiederholt sich nicht. |
 | **Prüfungssimulation** | Originalzeit, Originalpunkte, keine Rückmeldung vor dem Abgeben, Auswertung nach § 15 ElekAusbV. |
 | **Kundenauftrag** | Geführter Kundenauftrag zur praktischen Prüfung (Wärmepumpe, Wallbox, PV, Geräteprüfung): Planung gegen die Engine, Ausführungsreihenfolge mit den fünf Sicherheitsregeln, Prüf- und Messergebnisse, Fachgespräch – bewertet nach dem PAL-Schema. |
 | **Lerngedächtnis** | Zustandsautomat mit Vergessen, Sicherheitsquote (geraten zählt halb), Digest, Coach-Überwachung. Die Reife **sinkt** bei schlechter Leistung (frisches Fünf-Versuche-Fenster) und **verfällt** nach Stillstand (zustandsabhängige Halbwertszeit: 7 Tage frisch, 21 gefestigt, 45 prüfungsreif). |
-| **KI** | Direkt mit Groq, ohne Einrichtung. Aufgabenerzeugung aus dem Lernlager, Lernberatung, Verbindungstest. Jeder Fehler wird in Klartext plus **nächsten Schritt** übersetzt. |
+| **Interaktive Formate** | Richtig/Falsch, Zuordnung, Reihenfolge, Zahleneingabe und Lückentext. Teilpunkte statt Schwarz-Weiß: Wer vier von fünf Paaren richtig zuordnet, hat den Stoff weitgehend verstanden. |
 | **Zustand** | Seite, laufende Sitzung, Prüfungsfortschritt samt Restzeit und Filter überleben ein Neuladen. |
 | **Bildschirmbreiten** | Telefon: eine Spalte, Navigation unten. Tablet: breiteres Feld, Karten zweispaltig. PC: Navigation als Leiste links, Inhalt zentriert im freien Raum. |
 | **Termine** | Sommerprüfung 2027 mit Countdown, Fristen-Wächter und Phasenplan bis zum Prüfungstag. |
@@ -84,7 +88,6 @@ src/
   engine/      Rechenkern
   validation/  Pipeline – der einzige Weg zu einer Aufgabe
   tasks/       Aufgabengeneratoren, Sitzungs-Baukasten, Rezeptauflösung
-  ai/          Groq-Client, Prompts, Zweitprüfung
   memory/      Lerngedächtnis, Digest, Coach
   crypto/      AES-GCM/PBKDF2 – dieselbe Krypto für Backup und Sync
   storage/     Speicher-Adapter (IndexedDB)
@@ -123,29 +126,24 @@ wird vom Workflow geprüft, gebaut und auf
 für die **Webpage-Karte in Home Assistant** – die Tafel lädt bei jedem
 Besuch den aktuellen Stand von GitHub, ohne dass etwas kopiert wird.
 
-## KI-Anbindung
+## Die Validierungspipeline
 
-Die Aufgabenerzeugung ruft **Groq direkt** auf – kein Worker, kein Proxy,
-keine Einrichtung. Der Schlüssel liegt im Quelltext (`src/ai/client.ts`),
-weil der Trainer ein persönliches Lernwerkzeug ist. Wer einen eigenen
-Schlüssel will: kostenlos auf [console.groq.com](https://console.groq.com),
-dann in den Einstellungen eintragen.
+Jede Aufgabe – ob gerechnet oder kuratiert – durchläuft dieselbe Pipeline,
+bevor sie gestellt wird:
 
-Jede KI-Aufgabe durchläuft dieselbe Pipeline, bevor sie gestellt wird:
-
-1. **Rezept** – die KI wählt eine Rechenvorschrift, die Rechen-Engine
-   ermittelt daraus den richtigen Wert. Die KI kennt ihn nie.
+1. **Rezept** – wo eine Zahl gefragt ist, führt die Rechen-Engine die
+   Rechenvorschrift aus. Sie ermittelt den richtigen Wert deterministisch.
 2. **Optionsabgleich** – genau eine Antwortmöglichkeit muss zum Ergebnis
    passen; mehrdeutige Aufgaben werden verworfen.
 3. **Faktenbindung** – jede Zahl im Aufgabentext muss auf einen
-   Faktenbasis-Eintrag verweisen. Freie Zahlen scheitern an der Pipeline.
+   Faktenbasis-Eintrag zurückgehen. Freie Zahlen scheitern an der Pipeline.
 4. **Duplikatsperre** – dieselbe Aufgabe kommt nicht zweimal.
-5. **Zweitprüfung** – ein Modellaufruf prüft Eindeutigkeit und
-   Prüfungsnähe und wirft Beanstandetes heraus.
+5. **Gültigkeitsprüfung** – zitierte Fakten müssen existieren und im
+   Gültigkeitszeitraum liegen.
 
-Grundlage jedes Prompts ist das **Lernlager** (`src/content/lernlager.ts`):
-Themenbesprechungen, typische Prüfungsfragen und die je Thema erlaubten
-Fakten mit Quellen.
+Kuratierten Aufgaben liegt das **Lernlager** (`src/content/lernlager.ts`)
+zugrunde: Themenbesprechungen, typische Prüfungsfragen und die je Thema
+erlaubten Fakten mit Quellen.
 ## Zwei Wege, die nicht vermischt werden
 
 Leiterquerschnitt und Absicherung lassen sich über die Referenzwerte I_z oder
@@ -155,9 +153,10 @@ verwendete Regel in die Lösung. In der Aufgabe steht, welcher Weg benutzt wurde
 
 ## Was noch offen ist
 
-- 122 der 211 Lernpfad-Themen haben noch keine fertige Aufgabe. Sie werden über
-  die KI erzeugt; ohne API-Schlüssel bleiben sie leer. Das ist in der
-  Prüfungssimulation sichtbar, statt eine Lücke zu verdecken.
+- Nicht zu jedem der 216 Lernpfad-Themen liegt bereits eine kuratierte
+  Aufgabe vor. Jedes Thema trägt aber mindestens eine Aufgabe aus der
+  Faktenbasis, dem interaktiven Bestand oder den Verfahrensfragen. Was fehlt,
+  ist in der Prüfungssimulation sichtbar, statt eine Lücke zu verdecken.
 - 7 Werte der Faktenbasis sind noch nicht am Original geprüft: I_z-Tabelle,
   Schultabelle, ρ-Faktor, R_iso-Grenzwert, U₀ für besondere Stromkreise im
   Freien, Spannungsfall mit cos φ.

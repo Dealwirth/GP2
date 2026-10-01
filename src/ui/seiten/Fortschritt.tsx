@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useGespeichert } from '../persistenz.ts';
-import { holeBeratung, type Beratung } from '../../ai/beratung.ts';
-import { aiEinstellungenAus } from '../einstellungen.ts';
+import { lokaleBeratung, type Beratung } from '../../domain/beratung.ts';
+
 import {
   PRUEFUNGSBEREICHE,
   TEIL2_BEREICHE,
@@ -320,26 +320,18 @@ export function Fortschritt(props: { store: Store }) {
 /**
  * Beratungstext zum Lernstand.
  *
- * Ohne Knopfdruck gibt es keine Beratung: Sonst würde bei jedem Öffnen der
- * Seite eine Anfrage fällig, und das knappe kostenlose Kontingent wäre nach
- * wenigen Besuchen aufgebraucht. Einmal erzeugt, hält der Text, bis er
- * verworfen wird.
+ * Der Text wird aus dem Lernstand gerechnet und steht sofort. Er hält, bis er
+ * verworfen wird – so bleibt die Seite beim Öffnen still.
  */
 function Beratungskarte(props: { store: Store }) {
   const { store } = props;
-  const ai = useMemo(() => aiEinstellungenAus(store.einstellungen), [store.einstellungen]);
   const [beratung, setBeratung] = useGespeichert<Beratung | null>('beratung', null);
   const [laeuft, setLaeuft] = useState(false);
 
   const erzeugen = async (): Promise<void> => {
     setLaeuft(true);
     try {
-      // `holeBeratung` fällt bei jedem Fehler auf die gerechnete Beratung
-      // zurück. Deshalb gibt es hier keinen Fehlerzweig: Es kommt immer ein
-      // Text zurück, schlimmstenfalls ohne Feinschliff.
-      setBeratung(
-        await holeBeratung(ai, store.digest, undefined, store.einstellungen.eigenerCoachHinweis),
-      );
+      setBeratung(lokaleBeratung(store.digest));
     } finally {
       setLaeuft(false);
     }
@@ -349,20 +341,15 @@ function Beratungskarte(props: { store: Store }) {
     <div>
       <div className="prKopf">
         <span className="prTitel">Lernberatung</span>
-        {beratung && (
-          <span className="prGewicht">
-            {beratung.herkunft === 'ki' ? 'von der KI formuliert' : 'aus dem Lernstand gerechnet'}
-          </span>
-        )}
+        {beratung && <span className="prGewicht">aus dem Lernstand gerechnet</span>}
       </div>
 
       {beratung ? (
         <>
           <p>{beratung.text}</p>
-          {beratung.grund && <p className="klein">Ohne KI, weil: {beratung.grund}</p>}
           <div className="raster raster2">
             <button disabled={laeuft} onClick={() => void erzeugen()}>
-              {laeuft ? 'Erzeugt …' : 'Neu formulieren'}
+              {laeuft ? 'Erzeugt …' : 'Neu berechnen'}
             </button>
             <button className="still" onClick={() => setBeratung(null)}>
               Ausblenden
@@ -371,9 +358,7 @@ function Beratungskarte(props: { store: Store }) {
         </>
       ) : (
         <>
-          <p className="klein">
-            Was jetzt am meisten bringt – aus deinem Lernstand. Funktioniert auch ohne KI.
-          </p>
+          <p className="klein">Was jetzt am meisten bringt – aus deinem Lernstand gerechnet.</p>
           <button disabled={laeuft} onClick={() => void erzeugen()}>
             {laeuft ? 'Erzeugt …' : 'Beratung erzeugen'}
           </button>
